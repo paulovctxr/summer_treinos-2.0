@@ -1,3 +1,63 @@
+# Summer Fit
+
+![Visão geral do Summer Fit: fichas, importação por foto e acesso por usuário](docs/portfolio-overview.svg)
+
+Aplicação web para organizar fichas de exercícios, registrar treinos e administrar planos de acesso. O projeto reúne interface responsiva, autenticação, persistência por usuário e integração de IA para leitura de fichas por foto.
+
+**[Abrir aplicação](https://ios-web-view.vercel.app)** · [Código](https://github.com/paulovctxr/converter-app-para-ios-e-web)
+
+> O endereço acima é o publicado no repositório. Os fluxos pessoais exigem conta; recursos administrativos exigem autorização. A imagem é uma visão geral ilustrada, não uma captura da interface.
+
+## Tecnologias e decisões técnicas
+
+| Camada | Implementação |
+| --- | --- |
+| Interface | Next.js, React, TypeScript e Tailwind CSS |
+| Identidade e dados | Supabase Auth, PostgreSQL, migrações SQL e RLS |
+| Integração de IA | Supabase Edge Functions; validação do resultado antes de salvar |
+| Qualidade | TypeScript, Node Test Runner e PGlite |
+
+## Como explorar
+
+1. Abra a aplicação e use o cadastro/login disponibilizado na interface.
+2. Crie uma ficha com exercícios, séries e repetições.
+3. Registre uma sessão e consulte o histórico e a meta semanal.
+4. Na importação por foto, revise o conteúdo extraído antes de salvar.
+
+## Executar localmente
+
+Pré-requisitos: Git, Node.js compatível com as versões de Next.js e pnpm do projeto, pnpm na versão indicada em `package.json`, e um projeto Supabase de desenvolvimento.
+
+```sh
+git clone https://github.com/paulovctxr/converter-app-para-ios-e-web.git
+cd converter-app-para-ios-e-web
+pnpm install --frozen-lockfile
+cp .env.example .env.local
+```
+
+Preencha as variáveis de `.env.local` e siga a seção **Configuração obrigatória antes da publicação** abaixo para banco, autenticação e funções. Use um ambiente de desenvolvimento separado para experimentar.
+
+```sh
+pnpm dev
+```
+
+Abra o endereço exibido no terminal, normalmente `http://localhost:3000`. Os comandos de tipagem, testes e build estão documentados ao final.
+
+## Organização do código
+
+- `app/`: páginas, layout e rotas de autenticação.
+- `components/`: interface de treinos, planos e administração.
+- `lib/`: tipos, validações e integrações.
+- `supabase/migrations/`: evolução do banco e permissões.
+- `supabase/functions/`: integrações executadas no servidor.
+- `tests/`: regras de domínio e acesso ao banco.
+
+## Limites de escopo
+
+Aplicação web para desktop e celular, com manifesto de instalação. Não equivale a uma publicação nativa na App Store. O funcionamento requer internet; pagamentos PIX são conferidos manualmente pelo administrador.
+
+---
+
 # Summer Fit / Summer Treinos — web e celular
 
 Aplicativo Next.js com autenticação Supabase, fichas pessoais persistentes, registro de treinos e administração de planos. A integração GitHub/Vercel existente publica a branch `main`.
