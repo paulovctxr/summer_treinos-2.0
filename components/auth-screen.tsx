@@ -1,9 +1,10 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
-import { ArrowRight, Dumbbell, Eye, EyeOff, IdCard, LockKeyhole, Mail } from 'lucide-react'
+import { FormEvent, useRef, useState } from 'react'
+import { ArrowRight, CircleCheck, CircleHelp, Dumbbell, Eye, EyeOff, IdCard, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { InstallApp } from '@/components/install-app'
+import styles from './auth-screen.module.css'
 
 type Mode = 'login' | 'signup' | 'reset'
 export function AuthScreen({ initialMessage = '' }: { initialMessage?: string }) {
@@ -13,13 +14,20 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
   const [name, setName] = useState('')
   const [registration, setRegistration] = useState('')
   const [message, setMessage] = useState(initialMessage)
+  const [messageKind, setMessageKind] = useState<'error' | 'success'>('error')
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
-  function switchMode(next: Mode) { setMode(next); setMessage(''); setPassword('') }
+  const [capsLock, setCapsLock] = useState(false)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  function switchMode(next: Mode) {
+    setMode(next); setMessage(''); setPassword(''); setVisible(false); setCapsLock(false)
+    // Announce the new form without opening the mobile keyboard automatically.
+    requestAnimationFrame(() => headingRef.current?.focus())
+  }
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (loading) return
-    setLoading(true); setMessage('')
+    setLoading(true); setMessage(''); setMessageKind('error')
     try {
       const supabase = createClient()
       const normalizedEmail = email.trim().toLowerCase()
@@ -27,6 +35,7 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
       if (mode === 'reset') {
         const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: `${callback}?next=/auth/reset-password` })
         if (error) throw error
+        setMessageKind('success')
         setMessage('Se houver uma conta com esse e-mail, você receberá um link para criar outra senha. Confira também o spam.')
         return
       }
@@ -37,7 +46,10 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
         setMessage(error.code === 'email_not_confirmed' ? 'Confirme seu e-mail antes de entrar. Confira também a pasta de spam.' : error.code === 'invalid_credentials' ? 'E-mail ou senha incorretos. Você pode recuperar sua senha abaixo.' : error.status === 429 ? 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' : 'Não foi possível concluir. Confira os dados e tente novamente em instantes.')
         return
       }
-      if (mode === 'signup' && !data.session) setMessage('Confira seu e-mail para confirmar o cadastro. Depois da confirmação, você já poderá entrar normalmente.')
+      if (mode === 'signup' && !data.session) {
+        setMessageKind('success')
+        setMessage('Confira seu e-mail para confirmar o cadastro. Depois da confirmação, você já poderá entrar normalmente.')
+      }
     } catch { setMessage('Não foi possível conectar ao serviço de acesso. Confira sua conexão e tente novamente.') }
     finally { setLoading(false) }
   }
@@ -57,18 +69,20 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
       </div>
       <img className="auth-brand-mascot" src="/summer-fit-mascot.jpeg" alt="" aria-hidden="true" />
     </section>
-    <section className="auth-card" aria-labelledby="auth-title">
+    <section className={`auth-card ${styles.card}`} aria-labelledby="auth-title">
       <div className="auth-logo">
         <img className="auth-academy-logo" src="/summer-fit-brand.jpeg" alt="Summer Fit" width={280} height={78} />
       </div>
-      <div className="auth-heading"><div className="auth-icon"><Dumbbell size={22} /></div><p className="eyebrow">UM TREINO DE CADA VEZ</p><h1 id="auth-title">{mode === 'login' ? 'Seu próximo passo começa aqui.' : mode === 'signup' ? 'Vamos começar?' : 'Recupere seu acesso'}</h1><p>{mode === 'login' ? 'Suas fichas, sua rotina e cada conquista em um só lugar.' : mode === 'signup' ? 'Informe seus dados e comece a usar o Summer assim que confirmar o cadastro.' : 'Enviaremos um link para você escolher uma nova senha.'}</p></div>
+      <div className="auth-heading"><div className="auth-icon"><Dumbbell size={22} aria-hidden="true" /></div><p className="eyebrow">UM TREINO DE CADA VEZ</p><h1 id="auth-title" ref={headingRef} tabIndex={-1}>{mode === 'login' ? 'Seu próximo passo começa aqui.' : mode === 'signup' ? 'Vamos começar?' : 'Recupere seu acesso'}</h1><p>{mode === 'login' ? 'Suas fichas, sua rotina e cada conquista em um só lugar.' : mode === 'signup' ? 'Informe seus dados e comece a usar o Summer assim que confirmar o cadastro.' : 'Enviaremos um link para você escolher uma nova senha.'}</p></div>
       <form className="auth-form" onSubmit={handleSubmit} aria-busy={loading}>
-        {mode === 'signup' && <label>Seu nome<input value={name} onChange={e => setName(e.target.value)} placeholder="Como podemos chamar você?" autoComplete="name" maxLength={80} required /></label>}
-        {mode === 'signup' && <label>Matrícula da academia<div className="input-with-icon"><IdCard size={17} aria-hidden="true" /><input type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={registration} onChange={e => setRegistration(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 números" autoComplete="off" required /></div><small className="field-help">Use o número de matrícula fornecido pela academia.</small></label>}
-        <label>E-mail<div className="input-with-icon"><Mail size={17} aria-hidden="true" /><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@email.com" autoComplete="email" autoCapitalize="none" required /></div></label>
-        {mode !== 'reset' && <label>Senha<div className="input-with-icon"><LockKeyhole size={17} aria-hidden="true" /><input type={visible ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Pelo menos 8 caracteres' : 'Sua senha'} minLength={mode === 'signup' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required /><button type="button" className="password-toggle" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>}
-        {message && <p className="auth-message" role="status">{message}</p>}
-        <button className="primary-button auth-submit" disabled={loading}>{loading ? 'AGUARDE...' : mode === 'login' ? 'ENTRAR' : mode === 'signup' ? 'CRIAR CONTA' : 'ENVIAR LINK'}<ArrowRight size={17} /></button>
+        <fieldset className={styles.fields} disabled={loading}>
+          {mode === 'signup' && <label htmlFor="auth-name">Seu nome<input id="auth-name" name="name" value={name} onChange={e => setName(e.target.value)} placeholder="Como podemos chamar você?" autoComplete="name" maxLength={80} required /></label>}
+          {mode === 'signup' && <div className={styles.field}><label htmlFor="auth-registration">Matrícula da academia</label><div className="input-with-icon"><IdCard size={17} aria-hidden="true" /><input id="auth-registration" name="registration" type="text" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} value={registration} onChange={e => setRegistration(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 números" autoComplete="off" aria-describedby="registration-help" required /></div><small id="registration-help" className="field-help">Use os 4 números fornecidos pela academia.</small></div>}
+          <div className={styles.field}><label htmlFor="auth-email">E-mail</label><div className="input-with-icon"><Mail size={17} aria-hidden="true" /><input id="auth-email" name="email" type="email" inputMode="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@email.com" autoComplete="email" autoCapitalize="none" spellCheck={false} required /></div></div>
+          {mode !== 'reset' && <div className={styles.field}><label htmlFor="auth-password">Senha</label><div className="input-with-icon"><LockKeyhole size={17} aria-hidden="true" /><input id="auth-password" name="password" type={visible ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => setCapsLock(e.getModifierState('CapsLock'))} onKeyUp={e => setCapsLock(e.getModifierState('CapsLock'))} onBlur={() => setCapsLock(false)} placeholder={mode === 'signup' ? 'Crie uma senha' : 'Sua senha'} minLength={mode === 'signup' ? 8 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} aria-describedby={[mode === 'signup' && 'password-help', capsLock && 'caps-lock-help'].filter(Boolean).join(' ') || undefined} required /><button type="button" className={`password-toggle ${styles.passwordToggle}`} onClick={() => setVisible(!visible)} aria-controls="auth-password" aria-pressed={visible} aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}>{visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</button></div>{mode === 'signup' && <small id="password-help" className="field-help">Use pelo menos 8 caracteres.</small>}{capsLock && <small id="caps-lock-help" className={styles.capsLock} role="status">Caps Lock está ativado.</small>}</div>}
+        </fieldset>
+        <div role="status" aria-live="polite" aria-atomic="true" className={styles.feedbackRegion}>{message && <p className={`${styles.feedback} ${messageKind === 'success' ? styles.success : styles.error}`}>{messageKind === 'success' ? <CircleCheck size={19} aria-hidden="true" /> : <CircleHelp size={19} aria-hidden="true" />}<span>{message}</span></p>}</div>
+        <button className={`primary-button auth-submit ${styles.submit}`} disabled={loading}>{loading ? <LoaderCircle size={18} className={styles.spinner} aria-hidden="true" /> : null}{loading ? mode === 'login' ? 'ENTRANDO...' : mode === 'signup' ? 'CRIANDO CONTA...' : 'ENVIANDO LINK...' : mode === 'login' ? 'ENTRAR' : mode === 'signup' ? 'CRIAR CONTA' : 'ENVIAR LINK'}{!loading && <ArrowRight size={17} aria-hidden="true" />}</button>
       </form>
       {mode === 'login' && <button className="auth-switch" disabled={loading} onClick={() => switchMode('reset')}>Esqueci minha senha</button>}
       <button className="auth-switch" disabled={loading} onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? 'É sua primeira vez? Crie uma conta' : 'Voltar para entrar'}</button>

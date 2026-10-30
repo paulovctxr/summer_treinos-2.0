@@ -1,0 +1,97 @@
+.card {
+  min-width: 0;
+}
+
+.fields {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.card input {
+  min-width: 0;
+  min-height: 48px;
+}
+
+.card input:disabled {
+  opacity: .7;
+}
+
+.card .passwordToggle {
+  width: 44px;
+  height: 44px;
+  margin-right: -9px;
+  border-radius: 8px;
+}
+
+.capsLock {
+  color: #bd0711;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.feedbackRegion:empty {
+  display: none;
+}
+
+.feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.feedback svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.error {
+  color: #a80811;
+  border-color: #f0c3c6;
+  background: #fff5f5;
+}
+
+.success {
+  color: #554608;
+  border-color: #eadb8a;
+  background: #fffbe8;
+}
+
+.card .submit {
+  min-height: 50px;
+}
+
+.card :global(.auth-switch) {
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 8px 0;
+  line-height: 1.5;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}

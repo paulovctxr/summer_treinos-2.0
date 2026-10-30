@@ -7,6 +7,7 @@ import { PanelLoading } from "@/components/panel-loading";
 import { NutritionistCard } from "@/components/nutritionist-card";
 import { RestTimer, WorkoutClock } from "@/components/workout-clock";
 import { TAB_PATHS, tabFromHash, type AppTab } from "@/lib/navigation";
+import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
 const PlanPanel = dynamic(() => import("@/components/plan-panel").then((module) => module.PlanPanel), { loading: PanelLoading });
 const ProWorkspace = dynamic(() => import("@/components/pro-workspace").then((module) => module.ProWorkspace), { loading: PanelLoading });
 const ProPaywall = dynamic(() => import("@/components/pro-paywall").then((module) => module.ProPaywall));
@@ -35,6 +36,8 @@ import {
 } from "@/lib/fitness";
 import {
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   Camera,
   Crown,
   ShieldCheck,
@@ -50,6 +53,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Search,
   Sun,
   Target,
   Trash2,
@@ -260,6 +264,10 @@ function Dashboard({ user }: { user: User }) {
   useEffect(() => { if (activeTab === "Nutrição") setNutritionVisited(true); }, [activeTab]);
   const [fitness, setFitness] = useState<FitnessData>(emptyFitness);
   const [draft, setDraft] = useState<Workout | null>(null);
+  const [draftBaseline, setDraftBaseline] = useState("");
+  const draftDirty = draft !== null && JSON.stringify(draft) !== draftBaseline;
+  const editorRef = useRef<HTMLFormElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [active, setActive] = useState<{
@@ -329,11 +337,8 @@ function Dashboard({ user }: { user: User }) {
     100,
     Math.round((summary.count / fitness.goal) * 100),
   );
-  const filtered = fitness.workouts.filter((w) =>
-    `${w.title} ${w.focus}`
-      .toLocaleLowerCase("pt-BR")
-      .includes(search.toLocaleLowerCase("pt-BR")),
-  );
+  const filtered = fitness.workouts.filter((workout) => matchesWorkout(workout, search));
+  const hasSearch = Boolean(search.trim());
   const loadFitness = useCallback(async () => {
     setDataLoading(true);
     try {
@@ -360,7 +365,7 @@ function Dashboard({ user }: { user: User }) {
     void loadFitness();
   }, [loadFitness]);
   useEffect(() => {
-    if (!active) return;
+    if (!active && !draftDirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
@@ -368,7 +373,25 @@ function Dashboard({ user }: { user: User }) {
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
     };
-  }, [active]);
+  }, [active, draftDirty]);
+  const draftId = draft?.id;
+  useEffect(() => {
+    if (draftId && activeTab === "Treinos") editorRef.current?.scrollIntoView({ block: "start" });
+  }, [draftId, activeTab]);
+  function canReplaceDraft() {
+    return !draftDirty || window.confirm("Você tem alterações não salvas nesta ficha. Descartar essas alterações?");
+  }
+  function openWorkoutEditor(workout: Workout) {
+    if (!canReplaceDraft()) return;
+    const next = structuredClone(workout);
+    setDraftBaseline(JSON.stringify(next));
+    setDraft(next);
+    setActiveTab("Treinos");
+  }
+  function closeWorkoutEditor() {
+    if (busy || !canReplaceDraft()) return;
+    setDraft(null);
+  }
   async function persist(
     change: (current: FitnessData) => FitnessData,
     success: string,
@@ -433,6 +456,8 @@ function Dashboard({ user }: { user: User }) {
       );
       return;
     }
+    if (!canReplaceDraft()) return;
+    setDraft(null);
     setShowImporter(true);
     setActiveTab("Treinos");
   }
@@ -448,8 +473,7 @@ function Dashboard({ user }: { user: User }) {
       return;
     }
     setShowImporter(false);
-    setDraft(newWorkout());
-    setActiveTab("Treinos");
+    openWorkoutEditor(newWorkout());
   }
   async function saveWorkout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -501,17 +525,18 @@ function Dashboard({ user }: { user: User }) {
   async function removeWorkout(workout: Workout) {
     if (
       !window.confirm(
-        `Excluir a ficha “${workout.title}”? Seu histórico de treinos será mantido.`,
+        `Excluir a ficha “${workout.title}”? Seu histórico de treinos será mantido.${draft?.id === workout.id ? " A edição aberta desta ficha também será descartada." : ""}`,
       )
     )
       return;
-    await persist(
+    const removed = await persist(
       (current) => ({
         ...current,
         workouts: current.workouts.filter((w) => w.id !== workout.id),
       }),
       "Ficha excluída. Histórico mantido.",
     );
+    if (removed && draft?.id === workout.id) setDraft(null);
   }
   async function saveImportedWorkouts(workouts: Workout[], importId: string) {
     const saved = await persist((current) => {
@@ -538,6 +563,10 @@ function Dashboard({ user }: { user: User }) {
       setNotice(
         "Você já tem um treino em andamento. Conclua ou encerre antes de começar outro.",
       );
+      return;
+    }
+    if (!workout.exercises.length) {
+      setNotice("Adicione pelo menos um exercício à ficha antes de iniciar o treino.");
       return;
     }
     setActive({ workout, startedAt: Date.now() });
@@ -588,6 +617,7 @@ function Dashboard({ user }: { user: User }) {
       !window.confirm("Sair e encerrar o treino em andamento sem registrá-lo?")
     )
       return;
+    if (!canReplaceDraft()) return;
     if (saving.current) return;
     setBusy(true);
     try {
@@ -616,10 +646,7 @@ function Dashboard({ user }: { user: User }) {
             className="icon-button"
             aria-label={`Editar ${workout.title}`}
             disabled={busy}
-            onClick={() => {
-              setDraft(structuredClone(workout));
-              setActiveTab("Treinos");
-            }}
+            onClick={() => openWorkoutEditor(workout)}
           >
             <Pencil size={16} />
           </button>
@@ -705,7 +732,7 @@ function Dashboard({ user }: { user: User }) {
         <header className="topbar">
           <div className="topbar-location">
             <img className="header-academy-logo" src="/summer-fit-brand.jpeg" alt="Summer Fit" width={180} height={50} />
-            <span className={online ? "status-dot" : "status-dot offline"} />
+            <span className={online ? "status-dot" : "status-dot offline"} role="img" aria-label={online ? "Com conexão à internet" : "Sem conexão à internet"} />
             <span className="header-current-tab">{activeTab === "Plano" ? "Planos" : activeTab}</span>
           </div>
           <div className="topbar-actions">
@@ -726,7 +753,7 @@ function Dashboard({ user }: { user: User }) {
             </button>
           </div>
         </header>
-        <div className="page-content" id="main-content">
+        <div className="page-content" id="main-content" tabIndex={-1}>
           {activeTab === "Início" && <div className="welcome-row">
             <div>
               <p className="eyebrow">
@@ -817,9 +844,17 @@ function Dashboard({ user }: { user: User }) {
                 </div>
                 <WorkoutClock startedAt={active.startedAt} />
               </div>
-              <p>
-                Marque cada exercício quando terminar. {checked.length}/
-                {active.workout.exercises.length} concluídos.
+              <div className="session-progress-copy" aria-live="polite" aria-atomic="true">
+                <span>{checked.length} de {active.workout.exercises.length} exercícios concluídos</span>
+                <strong>{Math.round(checked.length / active.workout.exercises.length * 100)}%</strong>
+              </div>
+              <div className="progress-track session-progress" role="progressbar" aria-label="Progresso do treino" aria-valuenow={checked.length} aria-valuemin={0} aria-valuemax={active.workout.exercises.length}>
+                <span style={{ width: `${checked.length / active.workout.exercises.length * 100}%` }} />
+              </div>
+              <p id="session-completion-hint">
+                {checked.length === active.workout.exercises.length
+                  ? "Tudo pronto! Conclua abaixo para salvar este treino no histórico."
+                  : "Marque cada exercício quando terminar para liberar a conclusão do treino."}
               </p>
               <div className="exercise-checklist">
                 {active.workout.exercises.map((exercise) => (
@@ -855,6 +890,7 @@ function Dashboard({ user }: { user: User }) {
               <div className="session-actions">
                 <button
                   className="primary-button"
+                  aria-describedby="session-completion-hint"
                   disabled={
                     busy || checked.length !== active.workout.exercises.length
                   }
@@ -1063,18 +1099,19 @@ function Dashboard({ user }: { user: User }) {
                 </button>
               </div>
               {draft && (
-                <form className="form-card workout-form" onSubmit={saveWorkout}>
+                <form className="form-card workout-form" ref={editorRef} key={draft.id} onSubmit={saveWorkout} aria-busy={busy}>
+                  <fieldset className="workout-fieldset" disabled={busy}>
                   <div className="section-heading">
-                    <h3>
+                    <div><h3>
                       {fitness.workouts.some((w) => w.id === draft.id)
                         ? "Editar ficha"
                         : "Nova ficha"}
-                    </h3>
+                    </h3><span className="draft-status">{draftDirty ? "Alterações ainda não salvas" : "Organize seu treino do seu jeito"}</span></div>
                     <button
                       type="button"
                       className="icon-button"
                       disabled={busy}
-                      onClick={() => setDraft(null)}
+                      onClick={closeWorkoutEditor}
                       aria-label="Fechar edição"
                     >
                       <X size={18} />
@@ -1122,11 +1159,19 @@ function Dashboard({ user }: { user: User }) {
                       />
                     </label>
                   </div>
-                  <h4>Exercícios</h4>
+                  <div className="editor-section-title"><h4>Exercícios</h4><span>Use as setas para ajustar a ordem</span></div>
                   {draft.exercises.map((exercise, index) => (
                     <div className="exercise-editor" key={exercise.id}>
+                      <div className="exercise-editor-heading">
+                        <strong>Exercício {index + 1}</strong>
+                        <div className="exercise-order-controls">
+                          <button type="button" className="icon-button" disabled={index === 0} aria-label={`Mover exercício ${index + 1} para cima`} onClick={() => setDraft({ ...draft, exercises: moveExercise(draft.exercises, exercise.id, -1) })}><ArrowUp size={16} /></button>
+                          <button type="button" className="icon-button" disabled={index === draft.exercises.length - 1} aria-label={`Mover exercício ${index + 1} para baixo`} onClick={() => setDraft({ ...draft, exercises: moveExercise(draft.exercises, exercise.id, 1) })}><ArrowDown size={16} /></button>
+                          <button type="button" className="icon-button" disabled={draft.exercises.length === 1} aria-label={`Remover exercício ${index + 1}`} onClick={() => setDraft({ ...draft, exercises: draft.exercises.filter((item) => item.id !== exercise.id) })}><Trash2 size={16} /></button>
+                        </div>
+                      </div>
                       <label className="exercise-name">
-                        Exercício {index + 1}
+                        Nome do exercício
                         <input
                           value={exercise.name}
                           maxLength={80}
@@ -1183,22 +1228,6 @@ function Dashboard({ user }: { user: User }) {
                           }
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        disabled={draft.exercises.length === 1}
-                        aria-label={`Remover exercício ${index + 1}`}
-                        onClick={() =>
-                          setDraft({
-                            ...draft,
-                            exercises: draft.exercises.filter(
-                              (x) => x.id !== exercise.id,
-                            ),
-                          })
-                        }
-                      >
-                        <Trash2 size={16} />
-                      </button>
                       <div className="exercise-extra">
                         <label>
                           Carga
@@ -1319,39 +1348,48 @@ function Dashboard({ user }: { user: User }) {
                     <Plus size={17} />
                     Adicionar exercício ({draft.exercises.length}/20)
                   </button>
-                  <button
-                    className="primary-button full-button"
-                    disabled={busy}
-                  >
-                    {busy ? "SALVANDO..." : "SALVAR FICHA"}
-                  </button>
+                  </fieldset>
+                  <div className="workout-form-actions">
+                    <span className="draft-status">{draft.exercises.length} {draft.exercises.length === 1 ? "exercício" : "exercícios"} na ficha</span>
+                    <button type="button" className="secondary-button" disabled={busy} onClick={closeWorkoutEditor}>Cancelar</button>
+                    <button className="primary-button" disabled={busy}><Check size={17} />{busy ? "SALVANDO..." : "SALVAR FICHA"}</button>
+                  </div>
                 </form>
               )}
-              <label className="search-label">
-                Buscar ficha
-                <input
+              {dataReady && <>
+              <div className="workout-search">
+                <label className="search-label" htmlFor="workout-search">Buscar ficha</label>
+                <div className="workout-search-input">
+                <Search size={19} aria-hidden="true" />
+                <input id="workout-search" ref={searchRef}
                   type="search"
-                  placeholder="Nome do treino ou foco muscular"
+                  placeholder="Treino, foco ou exercício"
                   value={search}
+                  aria-describedby="workout-search-results"
                   onChange={(e) => setSearch(e.target.value)}
                 />
-              </label>
-              <div className="panel-list">{filtered.map(renderWorkout)}</div>
+                {search && <button type="button" className="icon-button" aria-label="Limpar busca" onClick={() => { setSearch(""); searchRef.current?.focus(); }}><X size={17} /></button>}
+                </div>
+                <p className="search-results-count" id="workout-search-results" role="status">{filtered.length} {filtered.length === 1 ? "ficha encontrada" : "fichas encontradas"}{hasSearch ? ` para “${search.trim()}”` : ""}</p>
+              </div>
+              <div className="panel-list" aria-label="Fichas de treino">{filtered.map(renderWorkout)}</div>
               {!filtered.length && (
                 <div className="empty-state">
                   <Dumbbell size={28} />
                   <h3>
-                    {search
+                    {hasSearch
                       ? "Nenhuma ficha encontrada"
                       : "Seu espaço está pronto."}
                   </h3>
                   <p>
-                    {search
+                    {hasSearch
                       ? "Tente outro nome ou foco muscular."
-                      : "Toque em Novo treino para criar sua primeira ficha."}
+                      : "Importe sua ficha por foto ou monte seus exercícios manualmente."}
                   </p>
+                  {hasSearch ? <button className="secondary-button" onClick={() => { setSearch(""); searchRef.current?.focus(); }}>Limpar busca</button> : <button className="primary-button" onClick={openAddWorkout}><Plus size={17} />Adicionar primeiro treino</button>}
                 </div>
               )}
+              </>}
             </section>
           )}
           {activeTab === "Progresso" && (
@@ -1587,7 +1625,7 @@ function Dashboard({ user }: { user: User }) {
             </section>
           )}
           <footer className="page-footer">
-            SUMMER FIT <span>A academia que vai esquentar o seu dia.</span><small>Interface 28.09 · Comunidade desativada</small>
+            SUMMER FIT <span>A academia que vai esquentar o seu dia.</span>
           </footer>
         </div>
         <nav className="mobile-nav" aria-label="Navegação mobile">

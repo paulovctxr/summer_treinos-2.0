@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import './refinements.css'
 import './summer-fit-brand.css'
+import './usability.css'
 
 export const metadata: Metadata = {
   title: 'Summer Fit — Seu treino, agora no celular',
