@@ -1005,7 +1005,7 @@ function Dashboard({ user }: { user: User }) {
               </div>
               <div className="home-shortcuts" aria-label="Acesso rápido">
                 <button onClick={openAddWorkout}><span className="shortcut-icon"><Camera size={22} /></span><span><strong>Importar minha ficha</strong><small>Do papel para o celular</small></span><ChevronRight size={18} /></button>
-                <button onClick={() => setActiveTab("Nutrição")}><span className="shortcut-icon"><Utensils size={22} /></span><span><strong>Minha nutrição</strong><small>{paid ? "Cardápio, foto e substituições com IA" : "Conheça os recursos do Summer PRO"}</small></span><ChevronRight size={18} /></button>
+                <button onClick={() => setActiveTab("Nutrição")}><span className="shortcut-icon"><Utensils size={22} /></span><span><strong>Minha nutrição</strong><small>{paid ? "Cardápio, diário, foto e água" : "Conheça os recursos do Summer PRO"}</small></span><ChevronRight size={18} /></button>
               </div>
               {paid ? (
                 <section className="nutrition-home-card pro-active-home">
@@ -1016,8 +1016,8 @@ function Dashboard({ user }: { user: User }) {
                     <p className="eyebrow">SUMMER PRO ATIVO</p>
                     <h3>Seu painel nutricional está liberado</h3>
                     <p>
-                      Acompanhe calorias, registre refeições por foto e faça
-                      substituições com IA.
+                      Acompanhe suas metas, registre refeições por foto e
+                      organize sua alimentação e água.
                     </p>
                   </div>
                   <button
@@ -1034,7 +1034,7 @@ function Dashboard({ user }: { user: User }) {
                   </div>
                   <div>
                     <p className="eyebrow">NUTRIÇÃO IA</p>
-                    <h3>Cardápio, registro por foto e substituições com IA</h3>
+                    <h3>Cardápio, registro por foto e diário alimentar</h3>
                     <p>
                       Organize sua alimentação e acompanhe calorias e
                       macronutrientes de forma simples.
@@ -1506,13 +1506,13 @@ function Dashboard({ user }: { user: User }) {
             <PlanPanel access={access} onOpenNutrition={() => setActiveTab("Nutrição")} />
           )}
           {paid && (nutritionVisited || activeTab === "Nutrição") && <div hidden={activeTab !== "Nutrição"}>
-            <ProWorkspace onRefresh={refreshAccess} active={activeTab === "Nutrição"} />
+            <ProWorkspace onRefresh={refreshAccess} userId={user.id} active={activeTab === "Nutrição"} />
           </div>}
           {!paid && activeTab === "Nutrição" && <section className="nutrition-locked-page">
             <span className="pro-hero-icon"><Utensils size={28} /></span>
             <p className="eyebrow">SUMMER PRO</p><h1>Cuide da alimentação.<br />Evolua no seu ritmo.</h1>
-            <p>Cardápio de 7 dias, alimentação por foto, substituições com IA, metas, água e lista de compras.</p>
-            <div className="locked-feature-grid"><span>Cardápio com IA</span><span>Foto da alimentação</span><span>Substituição com IA</span><span>Diário e controle de água</span><span>Calorias e macros</span><span>Lista de compras</span></div>
+            <p>Cardápio de 7 dias, alimentação por foto, diário alimentar, metas, água e lista de compras.</p>
+            <div className="locked-feature-grid"><span>Cardápio com IA</span><span>Foto da alimentação</span><span>Metas personalizadas</span><span>Diário e controle de água</span><span>Calorias e macros</span><span>Lista de compras</span></div>
             <button className="primary-button" onClick={() => setActiveTab("Plano")}><Crown size={18} />Conhecer Summer PRO<ArrowRight size={18} /></button>
             <small>Seus treinos e a importação por foto continuam gratuitos.</small>
           </section>}

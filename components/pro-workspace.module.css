@@ -1,0 +1,163 @@
+.workspace { min-width: 0; }
+.workspace :global(.pro-workspace-heading) { gap: 16px; }
+.workspace :global(.pro-workspace-heading p) { line-height: 1.6; }
+.workspace :global(.ai-usage-badge) { min-height: 40px; line-height: 1.5; font-size: 12px; }
+.workspace :global(.pro-tool-tabs) {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f1f1ee;
+  scrollbar-width: thin;
+  scrollbar-color: #c9c9c1 transparent;
+}
+.workspace :global(.pro-tool-tabs button) { display: flex; flex: 1 0 auto; flex-direction: row; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 14px; border: 0; border-radius: 9px; font-size: 13px; white-space: nowrap; }
+.workspace :global(.pro-tool-tabs button.active) { color: #fff; background: #171717; }
+.workspace :global(.pro-tool-tabs svg) { flex-shrink: 0; }
+.workspace :global(.pro-overview), .workspace :global(.meal-plan-panel), .workspace :global(.nutrition-diary), .workspace :global(.shopping-panel) { padding: 0; min-width: 0; scroll-margin-top: 88px; }
+.workspace :global(.meal-plan-header), .workspace :global(.diary-heading) { scroll-margin-top: 88px; }
+.workspace :global(.pro-metric-grid) { margin-top: 18px; }
+.workspace :global(.pro-metric-grid article) { min-height: 125px; }
+.workspace :global(.pro-metric-grid strong) { overflow-wrap: anywhere; font-size: 24px; }
+.workspace :global(.pro-action-card h4), .workspace :global(.meal-plan-header h4), .workspace :global(.diary-heading h4) { font-size: 22px; line-height: 1.3; margin: 4px 0 8px; }
+.workspace :global(.pro-action-card > div), .workspace :global(.meal-plan-header > div) { min-width: 0; }
+.workspace :global(.notice) { overflow-wrap: anywhere; }
+.workspace :global(.nutrition-profile-details) { overflow: clip; }
+.workspace :global(.nutrition-profile-details summary) { min-height: 64px; }
+.workspace :global(.nutrition-profile-details summary span:last-child) { color: #9d0c16; flex-shrink: 0; }
+.fieldset { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.workspace input, .workspace select, .workspace textarea { min-width: 0; max-width: 100%; font-size: 16px; }
+.workspace input, .workspace select { min-height: 46px; }
+.workspace :global(.nutrition-form-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.workspace :global(.nutrition-form-grid label) { min-width: 0; font-size: 13px; }
+.workspace :global(.nutrition-form-actions) { margin-top: 0; }
+.profileState { color: var(--muted); font-size: 12px; }
+.inlineHint { color: var(--muted); font-size: 12px; line-height: 1.65; margin: 12px 0; }
+.dailySummary { padding: 24px; border: 1px solid var(--line); border-top: 4px solid #ffd600; border-radius: 18px; background: #fff; box-shadow: 0 8px 26px #11111106; }
+.dailySummaryHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.dailySummaryHeading h3 { margin: 5px 0 8px; font-size: 26px; line-height: 1.2; letter-spacing: -.7px; }
+.dailySummaryHeading p { margin: 0; color: var(--muted); font-size: 13px; }
+.dailySummaryHeading :global(.eyebrow) { font-size: 10px; }
+.goalPill { flex-shrink: 0; padding: 7px 11px; border-radius: 99px; color: #574800; background: #fff6bf; font-size: 11px; font-weight: 650; }
+.dailyNumbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
+.dailyNumbers > div { display: grid; align-content: start; gap: 10px; min-width: 0; padding-right: 16px; border-right: 1px solid var(--line); }
+.dailyNumbers > div:last-child { border-right: 0; padding-right: 0; }
+.dailyNumbers svg { color: #b10c17; }
+.dailyNumbers strong { font-size: 30px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.dailyNumbers small { display: block; font-size: 12px; font-weight: 500; color: #555; }
+.dailyNumbers span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.summaryActions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.summaryActions > button { justify-content: center; }
+.workspace :global(.plan-day-tabs) { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: thin; }
+.workspace :global(.plan-day-tabs button) { flex: 1 0 100px; min-height: 46px; padding: 10px; font-size: 13px; white-space: nowrap; }
+.selectedDayHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 22px 0 14px; }
+.selectedDayHeading h3 { margin: 0; font-size: 21px; }
+.selectedDayHeading span { color: var(--muted); font-size: 12px; }
+.workspace :global(.day-target-summary) { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.workspace :global(.day-target-summary span) { min-width: 0; color: #554700; background: #fff6bf; font-size: 12px; }
+.workspace :global(.meal-grid) { gap: 16px; }
+.workspace :global(.meal-card) { display: flex; flex-direction: column; padding: 22px; min-width: 0; }
+.workspace :global(.meal-card h5) { font-size: 21px; line-height: 1.3; overflow-wrap: anywhere; }
+.workspace :global(.meal-macros) { display: flex; flex-wrap: wrap; gap: 6px; }
+.workspace :global(.meal-macros span) { color: #555; font-size: 12px; }
+.workspace :global(.meal-card summary) { padding-block: 12px; min-height: 44px; }
+.useMeal { justify-content: center; width: 100%; margin-top: auto; }
+.workspace :global(.meal-card details) { margin-bottom: 14px; }
+.workspace :global(.diary-heading) { gap: 16px; }
+.dayPicker { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px; }
+.dayPicker label { width: auto; }
+.dayPicker input { min-width: 155px; background: #fff; }
+.dayShortcuts { display: flex; align-items: center; gap: 6px; }
+.dayShortcuts > button { min-height: 46px; }
+.diaryDate { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.workspace :global(.macro-progress-grid) { gap: 12px; }
+.workspace :global(.macro-progress-grid article) { padding: 18px; }
+.workspace :global(.macro-progress-grid strong) { font-size: 23px; line-height: 1.4; overflow-wrap: anywhere; }
+.workspace :global(.macro-progress-grid strong small) { display: block; font-size: 12px; font-weight: 400; }
+.workspace :global(.macro-track i) { background: #bc101b; }
+.workspace :global(.water-card) { border: 1px solid #333; background: #171717; padding: 24px; }
+.workspace :global(.water-ring) { border-color: #ffd600; border-width: 6px; }
+.workspace :global(.water-ring strong) { font-size: 24px; }
+.workspace :global(.water-ring span), .workspace :global(.water-controls p) { color: #deded8; line-height: 1.6; }
+.workspace :global(.custom-water) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.workspace :global(.custom-water input) { flex: 1 1 100px; width: 120px; color: #171717; }
+.workspace .waterError { color: #ffe879; }
+.workspace :global(.water-history) { gap: 8px; }
+.workspace :global(.water-history span) { gap: 8px; padding: 0 6px 0 12px; color: #554700; background: #fff6bf; font-size: 12px; }
+.workspace :global(.water-history button) { min-width: 40px; min-height: 44px; color: #554700; font-size: 20px; }
+.workspace :global(.food-log-form) { scroll-margin-top: 90px; }
+.workspace :global(.food-log-form .section-heading) { align-items: flex-start; gap: 14px; }
+.workspace :global(.food-log-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.workspace :global(.food-log-grid label) { min-width: 0; font-size: 13px; }
+.workspace :global(.food-log-grid button) { grid-column: auto; justify-content: center; min-height: 46px; padding-inline: 12px; }
+.entriesHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin: 24px 0 12px; }
+.entriesHeading h4 { margin: 0; font-size: 19px; }
+.entriesHeading > span { color: var(--muted); font-size: 12px; }
+.workspace :global(.food-log-list > article) { grid-template-columns: minmax(0, 1fr) auto auto; padding: 16px; gap: 12px; }
+.workspace :global(.food-log-list article strong) { font-size: 15px; overflow-wrap: anywhere; }
+.workspace :global(.food-log-list article div) { min-width: 0; }
+.workspace :global(.food-log-list article p) { line-height: 1.6; }
+.diaryEmpty { display: grid; justify-items: center; gap: 12px; padding: 30px 20px; border: 1px dashed var(--line); border-radius: 14px; background: #fff; text-align: center; }
+.diaryEmpty strong { font-size: 16px; }
+.diaryEmpty p { max-width: 450px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.shoppingActions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.shoppingActions :global(button[aria-pressed=true]) { color: #171717; background: #fff6bf; border-color: #c5ab23; }
+.shoppingProgress { margin-top: 16px; height: 8px; overflow: hidden; border-radius: 99px; background: #eee8d7; }
+.shoppingProgress > span { display: block; height: 100%; background: #bc101b; }
+.workspace :global(.shopping-groups) { gap: 16px; }
+.workspace :global(.shopping-groups section) { padding: 20px; }
+.workspace :global(.shopping-groups h5) { margin-bottom: 12px; color: #171717; font-size: 16px; }
+.workspace :global(.shopping-groups label) { grid-template-columns: 24px minmax(0, 1fr) minmax(40px, auto); min-height: 56px; gap: 12px; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.workspace :global(.shopping-groups input) { width: 22px; height: 22px; min-height: 22px; accent-color: #bc101b; }
+.workspace :global(.shopping-groups label span), .workspace :global(.shopping-groups label small) { overflow-wrap: anywhere; }
+.workspace :global(.shopping-groups small) { text-align: right; max-width: 100px; }
+.shoppingComplete { display: flex; align-items: center; gap: 14px; padding: 20px; margin-top: 16px; border: 1px solid #e1ca5f; border-radius: 14px; background: #fff9d9; }
+.shoppingComplete > svg { flex-shrink: 0; }
+.shoppingComplete p { margin: 6px 0 0; color: #68604b; font-size: 13px; line-height: 1.6; }
+.copyList { display: block; width: 100%; min-height: 180px; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fff; }
+.photoDate { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+.photoDate > span { display: flex; align-items: center; gap: 8px; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 1100px) {
+  .workspace :global(.food-log-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .workspace :global(.food-log-grid button) { grid-column: span 2; }
+}
+@media (max-width: 700px) {
+  .dailySummary { padding: 20px; }
+  .dailySummaryHeading { flex-wrap: wrap; gap: 12px; }
+  .dailySummaryHeading h3 { font-size: 24px; }
+  .dailyNumbers { gap: 12px; }
+  .dailyNumbers > div { padding-right: 10px; }
+  .dailyNumbers strong { font-size: 26px; }
+  .summaryActions > button { flex: 1 1 220px; }
+  .workspace :global(.food-log-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace :global(.food-log-grid .wide-field), .workspace :global(.food-log-grid button) { grid-column: 1 / -1; }
+  .workspace :global(.food-log-list > article) { grid-template-columns: minmax(0, 1fr) 44px; }
+  .workspace :global(.food-log-list article > p) { grid-column: 1 / -1; order: 3; }
+  .workspace :global(.day-target-summary) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dayPicker { justify-content: space-between; width: 100%; }
+  .dayPicker label { flex: 1 1 160px; }
+}
+@media (max-width: 450px) {
+  .dailySummary { padding: 18px; }
+  .dailyNumbers { grid-template-columns: 1fr 1fr; gap: 18px 12px; }
+  .dailyNumbers > div:nth-child(2) { border-right: 0; }
+  .dailyNumbers > div:last-child { grid-column: 1 / -1; grid-template-columns: 22px minmax(0, 1fr); align-items: center; border-top: 1px solid var(--line); padding-top: 16px; }
+  .dailyNumbers > div:last-child strong { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; font-size: 22px; }
+  .dailyNumbers > div:last-child span { grid-column: 2; }
+  .workspace :global(.nutrition-profile-details .nutrition-profile-form) { padding: 18px; }
+  .workspace :global(.nutrition-form-grid) { grid-template-columns: minmax(0, 1fr); }
+  .workspace :global(.nutrition-form-grid .wide-field) { grid-column: auto; }
+  .workspace :global(.pro-tool-tabs button) { min-width: 120px; }
+  .workspace :global(.macro-progress-grid article) { padding: 14px; }
+  .workspace :global(.macro-progress-grid strong) { font-size: 22px; }
+  .workspace :global(.water-card) { padding: 20px 16px; }
+  .workspace :global(.meal-card) { padding: 20px; }
+  .workspace :global(.shopping-groups section) { padding: 16px; }
+  .shoppingActions :global(.secondary-button) { flex: 1 1 140px; justify-content: center; }
+}

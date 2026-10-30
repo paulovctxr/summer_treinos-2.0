@@ -8,6 +8,7 @@ import {
   Copy,
   Crown,
   MessageCircle,
+  RefreshCw,
   ShieldCheck,
   Utensils,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
   type SubscriptionPlan,
   type SubscriptionRequest,
 } from "@/lib/plans";
+import styles from "./pro-membership.module.css";
 
 function date(value: string | null | undefined) {
   return value
@@ -49,6 +51,10 @@ export function PlanPanel({
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [planDataReady, setPlanDataReady] = useState(false);
+  const [planDataError, setPlanDataError] = useState(false);
+  const [loadVersion, setLoadVersion] = useState(0);
+  const [pixCopied, setPixCopied] = useState(false);
   const checkoutTitleRef = useRef<HTMLHeadingElement>(null);
   const subscribeButtonRef = useRef<HTMLButtonElement>(null);
   const paid = isProAccess(access);
@@ -60,6 +66,8 @@ export function PlanPanel({
 
   useEffect(() => {
     let cancelled = false;
+    setPlanDataReady(false);
+    setPlanDataError(false);
     // A confirmed approval or renewal replaces the pending checkout in place.
     if (paid && previousSubscription.current && previousSubscription.current !== subscriptionVersion) {
       setCheckoutOpen(false);
@@ -81,42 +89,44 @@ export function PlanPanel({
           .maybeSingle(),
       ]);
       if (cancelled) return;
-      if (!planConfig.error && planConfig.data)
-        setConfig(planConfig.data as PlanConfig);
-      if (!pending.error && pending.data) {
+      if (planConfig.error || !planConfig.data || pending.error) throw new Error("plan unavailable");
+      setConfig(planConfig.data as PlanConfig);
+      if (pending.data) {
         const current = pending.data as SubscriptionRequest;
         setRequest(current);
         setSelectedPlan(current.subscription_plan);
         setCheckoutOpen(true);
-      } else if (!pending.error) {
+      } else {
         setRequest(null);
         if (paid) {
           setCheckoutOpen(false);
           setMessage("");
         }
       }
+      setPlanDataReady(true);
     } catch {
-      // The local defaults keep the pricing screen usable during brief outages.
+      if (!cancelled) setPlanDataError(true);
     }
     }
     void loadPlanData();
     return () => { cancelled = true; };
-  }, [paid, subscriptionVersion]);
+  }, [paid, subscriptionVersion, loadVersion]);
 
   useEffect(() => {
-    if (!checkoutOpen) return;
+    if (!checkoutOpen || !planDataReady) return;
     window.scrollTo({ top: 0, behavior: "instant" });
     checkoutTitleRef.current?.focus({ preventScroll: true });
-  }, [checkoutOpen]);
+  }, [checkoutOpen, planDataReady]);
 
   function returnToPlans() {
     setCheckoutOpen(false);
     setMessage("");
+    setPixCopied(false);
     window.requestAnimationFrame(() => subscribeButtonRef.current?.focus());
   }
 
   async function requestReview() {
-    if (busy) return;
+    if (busy || !planDataReady) return;
     setBusy(true);
     setMessage("");
     try {
@@ -147,8 +157,10 @@ export function PlanPanel({
   async function copyPix() {
     try {
       await navigator.clipboard.writeText(config.pix_key);
+      setPixCopied(true);
       setMessage("Chave PIX copiada.");
     } catch {
+      setPixCopied(false);
       setMessage(
         "Não foi possível copiar. Selecione a chave abaixo e copie manualmente.",
       );
@@ -163,10 +175,12 @@ export function PlanPanel({
       : monthlyPrice(config));
 
   return (
-    <section className="tab-panel pro-page">
-      {!checkoutOpen && (
+    <section className={`tab-panel pro-page ${styles.membership}`} aria-busy={!planDataReady && !planDataError}>
+      {!planDataReady && !planDataError && <div className={styles.loading} role="status"><RefreshCw size={20} aria-hidden="true" /><span>Conferindo seus planos e solicitações...</span></div>}
+      {planDataError && <div className={styles.loadError} role="alert"><strong>Não foi possível carregar seus planos</strong><p>Vamos conferir os valores e suas solicitações antes de continuar.</p><button type="button" className="secondary-button" onClick={() => setLoadVersion((version) => version + 1)}><RefreshCw size={17} />Tentar novamente</button></div>}
+      {planDataReady && !checkoutOpen && (
         <>
-          {paid && <div className="subscription-tools-link"><div><strong>Seu espaço PRO está liberado</strong><p>Acesse cardápio com IA, diário, água, registro por foto e substituições inteligentes na aba Nutrição.</p></div><button className="primary-button" onClick={onOpenNutrition}><Utensils size={17} />Abrir meus recursos</button></div>}
+          {paid && <div className="subscription-tools-link"><div><strong>Seu espaço PRO está liberado</strong><p>Acesse seu cardápio com IA, diário alimentar, água, registro por foto e lista de compras na aba Nutrição.</p></div><button className="primary-button" onClick={onOpenNutrition}><Utensils size={17} />Abrir meus recursos</button></div>}
 
           {paid && (
             <div className="subscription-section-heading">
@@ -245,7 +259,7 @@ export function PlanPanel({
               )}
               {config.promotion_active && selectedPlan === "monthly" && (
                 <p className="annual-saving">
-                  Promoção de lançamento · 1º mês por {formatBRL(config.promotional_monthly_price_cents)}
+                  1º mês por {formatBRL(config.promotional_monthly_price_cents)}. Depois, {formatBRL(config.pro_monthly_price_cents)}/mês.
                 </p>
               )}
               <ul className="feature-list pro-features">
@@ -262,6 +276,7 @@ export function PlanPanel({
                 className="primary-button full-button pro-subscribe"
                 onClick={() => {
                   setMessage("");
+                  setPixCopied(false);
                   setCheckoutOpen(true);
                 }}
               >
@@ -279,7 +294,7 @@ export function PlanPanel({
         </>
       )}
 
-      {checkoutOpen && (
+      {planDataReady && checkoutOpen && (
         <>
           <button
             type="button"
@@ -296,7 +311,7 @@ export function PlanPanel({
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <p className="eyebrow">PAGAMENTO SEGURO</p>
+                <p className="eyebrow">PIX COM CONFERÊNCIA MANUAL</p>
                 <h3 id="pix-title" ref={checkoutTitleRef} tabIndex={-1}>
                   {request ? "Pagamento aguardando conferência" : "Assinar via PIX"}
                 </h3>
@@ -306,10 +321,11 @@ export function PlanPanel({
               <span>{subscriptionPlanLabel(checkoutPlan)}</span>
               <strong>{formatBRL(checkoutAmount)}</strong>
             </div>
-            <p>
-              Copie a chave, faça o pagamento no aplicativo do seu banco e envie o
-              comprovante ao administrador informando o e-mail da sua conta.
-            </p>
+            <ol className={styles.paymentSteps} aria-label="Como liberar o Summer PRO">
+              <li><span>1</span><div><strong>Faça o PIX no seu banco</strong><p>Use a chave e o valor do plano escolhido abaixo.</p></div></li>
+              <li><span>2</span><div><strong>Envie seu comprovante</strong><p>Informe também o e-mail que usa para entrar no Summer Fit.</p></div></li>
+              <li><span>3</span><div><strong>Aguarde a conferência</strong><p>O administrador verifica o pagamento e libera o PRO na sua conta.</p></div></li>
+            </ol>
             <div className="pix-receiver-note">
               <strong>Sobre o pagamento</strong>
               <span>
@@ -317,10 +333,11 @@ export function PlanPanel({
                 aplicação. Depois do PIX, envie o comprovante para conferência.
               </span>
             </div>
-            <code>{config.pix_key}</code>
+            <label className={styles.pixLabel} htmlFor="pix-key">Chave PIX</label>
+            <input id="pix-key" className={styles.pixKey} readOnly value={config.pix_key} onFocus={(event) => event.currentTarget.select()} />
             <button className="secondary-button" onClick={() => void copyPix()}>
-              <Copy size={16} />
-              Copiar chave PIX
+              {pixCopied ? <Check size={16} /> : <Copy size={16} />}
+              {pixCopied ? "Chave copiada" : "Copiar chave PIX"}
             </button>
             <a
               className="secondary-button pix-whatsapp-button"
@@ -337,8 +354,7 @@ export function PlanPanel({
                 <div>
                   <strong>Solicitação enviada</strong>
                   <span>
-                    Seu plano só ficará PRO depois que o administrador conferir o
-                    pagamento.
+                    Enviada em {date(request.created_at)}. Seu acesso será liberado após a conferência do pagamento; não é necessário solicitar novamente.
                   </span>
                 </div>
               </div>

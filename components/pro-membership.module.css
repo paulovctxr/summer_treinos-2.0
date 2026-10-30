@@ -1,0 +1,74 @@
+.membership { min-width: 0; }
+.membership :global(.pricing-card), .membership :global(.pix-checkout) { min-width: 0; }
+.membership :global(.pricing-card-top) { gap: 12px; flex-wrap: wrap; }
+.membership :global(.pro-price) { flex-wrap: wrap; }
+.membership :global(.feature-list) { line-height: 1.5; }
+.membership :global(.subscription-tools-link) { gap: 18px; }
+.membership :global(.pix-checkout) { max-width: 740px; }
+.membership :global(.pending-payment) { align-items: flex-start; }
+.membership :global(.pending-payment) svg { flex-shrink: 0; }
+.membership :global(.pix-order-summary) { gap: 12px; flex-wrap: wrap; }
+.membership :global(.pix-order-summary) strong { white-space: nowrap; }
+.membership :global(.pix-whatsapp-button) { min-height: 48px; line-height: 1.4; }
+.loading { display: flex; align-items: center; gap: 12px; padding: 28px 20px; border: 1px solid var(--line); border-radius: 16px; background: #fff; color: var(--muted); }
+.loading svg { flex-shrink: 0; }
+.loadError { display: grid; justify-items: start; gap: 10px; padding: 24px; border: 1px solid #f0c3c6; border-radius: 16px; background: #fff5f5; }
+.loadError p { margin: 0; color: var(--muted); line-height: 1.6; }
+.paymentSteps { display: grid; gap: 14px; list-style: none; margin: 22px 0; padding: 0; }
+.paymentSteps li { display: flex; align-items: flex-start; gap: 12px; }
+.paymentSteps li > span { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; background: #ffd600; color: #171717; font-size: 12px; font-weight: 800; }
+.paymentSteps strong { font-size: 14px; }
+.paymentSteps p { margin: 3px 0 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.pixLabel { display: block; margin-top: 18px; font-size: 12px; font-weight: 700; }
+.pixKey { display: block; width: 100%; min-width: 0; min-height: 48px; margin: 8px 0 12px; padding: 12px; border: 1px dashed #bba72d; border-radius: 10px; background: #fff; color: #171717; font: 13px/1.5 ui-monospace, monospace; }
+.paywall { overscroll-behavior: contain; }
+.paywallNote { max-width: 440px; margin: 16px auto; color: #eee5c7; font-size: 13px; line-height: 1.65; }
+.paywall :global(.paywall-benefits) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.paywall :global(.paywall-benefits) > div { min-width: 0; line-height: 1.5; }
+.paywall :global(.paywall-benefits) > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+.progress { min-width: 0; }
+.periodFilter { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 10px; padding: 5px; border-radius: 12px; background: #efefeb; }
+.periodFilter button { flex: 1 1 90px; min-height: 44px; padding: 9px 12px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #555; font-size: 12px; font-weight: 700; }
+.periodFilter button[aria-pressed="true"] { color: #171717; background: #ffd600; border-color: #d8b600; }
+.periodSummary { margin: 0 0 18px; color: var(--muted); font-size: 12px; }
+.progress :global(.pro-stat-grid) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.progress :global(.pro-stat-grid) article { min-width: 0; }
+.progress :global(.pro-stat-grid) article > span { line-height: 1.5; }
+.progress :global(.progress-detail-grid) { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.progress :global(.load-progress-card), .progress :global(.records-card) { min-width: 0; }
+.progress :global(.load-progress-card) :global(.section-heading) { flex-direction: column; align-items: stretch; }
+.progress :global(.load-progress-card) select { min-width: 0; width: 100%; max-width: 100%; min-height: 46px; }
+.progress :global(.records-list) article { grid-template-columns: 25px minmax(0, 1fr) auto; }
+.progress :global(.records-list) article strong { overflow-wrap: anywhere; }
+.progress :global(.records-list) article b { white-space: nowrap; }
+.progressEmpty { display: flex; align-items: flex-start; gap: 12px; margin: 16px 0; padding: 18px; border: 1px dashed #d7c56b; border-radius: 12px; background: #fff; }
+.progressEmpty svg { flex-shrink: 0; color: #9a7600; }
+.progressEmpty strong { font-size: 14px; }
+.progressEmpty p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.chartSummary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px; margin-top: 18px; font-size: 12px; line-height: 1.6; }
+.chartSummary > span { color: var(--muted); overflow-wrap: anywhere; }
+.chartSummary > strong { color: #5a4900; }
+.progress .loadChart { padding: 4px; border-radius: 8px; scrollbar-width: thin; }
+.chartData { margin-top: 16px; border-top: 1px solid var(--line); }
+.chartData summary { padding-block: 12px; min-height: 44px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.chartData table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.chartData caption { padding: 0 0 10px; text-align: left; color: var(--muted); }
+.chartData th, .chartData td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+.chartData th { background: #fff8d8; }
+
+@media (max-width: 700px) {
+  .progress :global(.progress-detail-grid) { grid-template-columns: minmax(0, 1fr); }
+  .progress :global(.pro-stat-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progress :global(.pro-stat-grid) article { padding: 16px 12px; }
+  .progress :global(.pro-progress-heading) { align-items: flex-start; flex-direction: column; }
+  .progress :global(.load-progress-card) select, .pixKey { font-size: 16px; }
+  .membership :global(.subscription-tools-link) { align-items: stretch; flex-direction: column; }
+}
+@media (max-width: 540px) {
+  .membership :global(.pix-checkout) > button, .membership :global(.pix-whatsapp-button) { width: 100%; justify-content: center; }
+  .membership :global(.pix-whatsapp-button) { margin-top: 10px; }
+  .paywall { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .paywall :global(.paywall-benefits) { grid-template-columns: minmax(0, 1fr); }
+  .paywall :global(.paywall-benefits) > div:last-child:nth-child(odd) { grid-column: auto; }
+}

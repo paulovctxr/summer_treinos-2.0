@@ -8,7 +8,6 @@ import {
   Droplets,
   Flame,
   ShoppingBasket,
-  Sparkles,
   Trophy,
   Utensils,
   X,
@@ -19,11 +18,11 @@ import {
   monthlyPrice,
   type PlanConfig,
 } from "@/lib/plans";
+import styles from "./pro-membership.module.css";
 
 const highlights = [
   { icon: Utensils, label: "Nutrição com IA" },
   { icon: Camera, label: "Registrar alimentação por foto" },
-  { icon: Sparkles, label: "Substituir alimentos com IA" },
   { icon: Flame, label: "Calorias e macronutrientes" },
   { icon: Droplets, label: "Controle de água" },
   { icon: BarChart3, label: "Gráficos de evolução" },
@@ -45,10 +44,11 @@ export function ProPaywall({
     <div className="paywall-overlay" role="presentation">
       <section
         ref={dialog}
-        className="paywall-dialog"
+        className={`paywall-dialog ${styles.paywall}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="paywall-title"
+        aria-describedby="paywall-payment-note"
       >
         <button
           className="icon-button paywall-close"
@@ -73,12 +73,14 @@ export function ProPaywall({
           ))}
         </div>
         <div className="paywall-price">
-          <strong>{formatBRL(monthlyPrice(config))}/mês</strong>
+          <strong>{formatBRL(monthlyPrice(config))}{config.promotion_active ? " no 1º mês" : "/mês"}</strong>
+          {config.promotion_active && <span>Depois, {formatBRL(config.pro_monthly_price_cents)}/mês</span>}
           <span>ou {formatBRL(config.pro_annual_price_cents)}/ano</span>
         </div>
+        <p id="paywall-payment-note" className={styles.paywallNote}>Pagamento por PIX, com liberação após conferência do administrador. Sem cobrança automática.</p>
         <button className="primary-button full-button" onClick={onSubscribe}>
           <Crown size={17} />
-          ASSINAR SUMMER PRO
+          CONHECER OS PLANOS
         </button>
         <button className="text-button" onClick={onClose}>
           Agora não

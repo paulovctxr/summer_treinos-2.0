@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   AlertTriangle,
   Camera,
   Check,
+  CalendarDays,
   ImagePlus,
   LoaderCircle,
   RotateCcw,
@@ -17,6 +18,8 @@ import {
   type FoodPhotoAnalysis,
 } from "@/lib/food-photo";
 import { MEAL_LABELS, type MealType } from "@/lib/nutrition";
+import { parseFoodEntry } from "@/lib/nutrition-tools";
+import styles from "./food-photo-analyzer.module.css";
 
 type Step = "choice" | "preview" | "analyzing" | "review";
 type Draft = {
@@ -43,9 +46,8 @@ const emptyDraft: Draft = {
   fat_g: "",
 };
 
-function number(value: string, min: number, max: number) {
-  const parsed = Number(value.replace(",", "."));
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : min;
+function displayDay(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR", { day: "numeric", month: "long" });
 }
 
 async function errorPayload(error: unknown): Promise<AnalyzeResponse> {
@@ -76,16 +78,44 @@ export function FoodPhotoAnalyzer({
   const [analysis, setAnalysis] = useState<FoodPhotoAnalysis | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [message, setMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"error" | "success">("error");
   const [saving, setSaving] = useState(false);
+  const [photoDay, setPhotoDay] = useState(day);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  const analyzeRequest = useRef<AbortController | null>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
+  const reviewHeading = useRef<HTMLDivElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const inputId = useId();
+  const activeStep = step === "choice" || step === "preview" ? 0 : step === "analyzing" ? 1 : 2;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; analyzeRequest.current?.abort(); };
+  }, []);
+
+  useEffect(() => {
+    if (step === "review") reviewHeading.current?.focus({ preventScroll: true });
+  }, [step]);
+
+  useEffect(() => {
+    if (!file) return;
+    const protect = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, [file]);
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
   function choose(selected: File | undefined) {
-    if (!selected) return;
+    if (!selected || pending.current) return;
+    if (cameraInput.current) cameraInput.current.value = "";
+    if (galleryInput.current) galleryInput.current.value = "";
+    setMessageKind("error");
     if (!selected.type.startsWith("image/")) {
       setMessage("Escolha uma imagem da refeição.");
       return;
@@ -94,19 +124,16 @@ export function FoodPhotoAnalyzer({
       setMessage("A foto pode ter no máximo 15 MB.");
       return;
     }
-    if (preview) URL.revokeObjectURL(preview);
     setFile(selected);
     setPreview(URL.createObjectURL(selected));
     setAnalysis(null);
     setDraft(emptyDraft);
     setMessage("");
+    setPhotoDay(day);
     setStep("preview");
-    if (cameraInput.current) cameraInput.current.value = "";
-    if (galleryInput.current) galleryInput.current.value = "";
   }
 
   function reset() {
-    if (preview) URL.revokeObjectURL(preview);
     setFile(null);
     setPreview("");
     setAnalysis(null);
@@ -115,17 +142,29 @@ export function FoodPhotoAnalyzer({
     setStep("choice");
   }
 
+  function discard() {
+    if (pending.current) return;
+    if (step === "review" && !window.confirm("Descartar esta análise? A refeição ainda não foi registrada.")) return;
+    reset();
+  }
+
   async function analyze() {
-    if (!file) return;
+    if (!file || pending.current) return;
+    pending.current = true;
+    const controller = new AbortController();
+    analyzeRequest.current = controller;
     setStep("analyzing");
     setMessage("");
+    setMessageKind("error");
     try {
       const image = await prepareFoodPhoto(file);
+      if (controller.signal.aborted) return;
       const { data, error } =
         await createClient().functions.invoke<AnalyzeResponse>(
           "nutrition-ai-tools",
-          { body: { action: "analyze_food_photo", image } },
+          { body: { action: "analyze_food_photo", image }, signal: controller.signal, timeout: 90_000 },
         );
+      if (!mounted.current || controller.signal.aborted) return;
       if (error) {
         const payload = await errorPayload(error);
         throw new Error(
@@ -152,53 +191,79 @@ export function FoodPhotoAnalyzer({
       });
       setStep("review");
     } catch (error) {
+      if (!mounted.current || controller.signal.aborted) return;
       setStep("preview");
       setMessage(
         error instanceof Error
           ? error.message
           : "Não foi possível analisar esta foto.",
       );
+    } finally {
+      pending.current = false;
+      analyzeRequest.current = null;
     }
   }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || !draft.label.trim()) return;
+    if (pending.current) return;
+    if (!draft.label.trim()) {
+      setMessageKind("error");
+      setMessage("Informe o nome da refeição antes de registrar.");
+      nameInput.current?.focus();
+      return;
+    }
+    let parsed: ReturnType<typeof parseFoodEntry>;
+    try { parsed = parseFoodEntry(draft); }
+    catch (error) {
+      setMessageKind("error");
+      setMessage(error instanceof Error ? error.message : "Revise os valores da refeição.");
+      return;
+    }
+    pending.current = true;
     setSaving(true);
     setMessage("");
+    setMessageKind("error");
+    const savedDay = photoDay;
     try {
       const { error } = await createClient()
         .from("summer_calorie_entries")
         .insert({
-          day,
-          label: draft.label.trim(),
-          meal_type: draft.meal_type,
-          calories: number(draft.calories, 1, 10000),
-          protein_g: number(draft.protein_g, 0, 1000),
-          carbs_g: number(draft.carbs_g, 0, 1500),
-          fat_g: number(draft.fat_g, 0, 1000),
+          day: savedDay,
+          ...parsed,
         });
       if (error) throw error;
-      await onSaved();
+      if (!mounted.current) return;
       reset();
-      setMessage("Refeição registrada pela foto.");
+      setMessageKind("success");
+      setMessage(`Refeição registrada em ${displayDay(savedDay)}.`);
+      // Saving succeeded. A failed refresh must not offer to insert the same meal again.
+      try { await onSaved(); }
+      catch {
+        if (mounted.current) setMessage(`Refeição registrada em ${displayDay(savedDay)}. Atualize o diário para conferir os registros.`);
+      }
     } catch {
-      setMessage("Não foi possível salvar esta refeição.");
+      if (mounted.current) setMessage("Não foi possível salvar esta refeição. Sua revisão foi mantida; tente novamente.");
     } finally {
-      setSaving(false);
+      pending.current = false;
+      if (mounted.current) setSaving(false);
     }
   }
 
   return (
-    <section className="food-photo-card">
+    <section className={`food-photo-card ${styles.card}`} aria-labelledby={`${inputId}-title`} aria-busy={step === "analyzing" || saving}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">NOVIDADE COM IA</p>
-          <h4>Registrar alimentação por foto</h4>
+          <p className="eyebrow">DIÁRIO COM IA</p>
+          <h4 id={`${inputId}-title`}>Registrar alimentação por foto</h4>
           <p>Fotografe o prato, confira a estimativa e confirme antes de salvar.</p>
         </div>
-        <Camera size={24} />
+        <Camera size={24} aria-hidden="true" />
       </div>
+
+      <ol className={styles.steps} aria-label="Etapas do registro por foto">
+        {["Escolher foto", "Analisar", "Revisar e registrar"].map((label, index) => <li key={label} aria-current={index === activeStep ? "step" : undefined} data-complete={index < activeStep || undefined}><span aria-hidden="true">{index < activeStep ? <Check size={13} /> : index + 1}</span>{label}</li>)}
+      </ol>
 
       <input
         ref={cameraInput}
@@ -206,6 +271,8 @@ export function FoodPhotoAnalyzer({
         type="file"
         accept="image/jpeg,image/png,image/webp"
         capture="environment"
+        aria-label="Tirar foto da refeição"
+        tabIndex={-1}
         onChange={(event) => choose(event.target.files?.[0])}
       />
       <input
@@ -213,19 +280,23 @@ export function FoodPhotoAnalyzer({
         className="visually-hidden"
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        aria-label="Escolher foto da refeição"
+        tabIndex={-1}
         onChange={(event) => choose(event.target.files?.[0])}
       />
 
       {step === "choice" && (
         <div className="food-photo-actions">
-          <button className="primary-button" type="button" onClick={() => cameraInput.current?.click()}>
+          <button className="primary-button" type="button" disabled={saving} onClick={() => cameraInput.current?.click()}>
             <Camera size={18} /> TIRAR FOTO DA COMIDA
           </button>
-          <button className="secondary-button" type="button" onClick={() => galleryInput.current?.click()}>
+          <button className="secondary-button" type="button" disabled={saving} onClick={() => galleryInput.current?.click()}>
             <ImagePlus size={18} /> ESCOLHER DA GALERIA
           </button>
         </div>
       )}
+
+      {step === "choice" && <p className={styles.hint}>Deixe os alimentos visíveis e fotografe o prato por inteiro, com boa iluminação. JPG, PNG ou WebP, até 15 MB.</p>}
 
       {(step === "preview" || step === "analyzing" || step === "review") && preview && (
         <div className="food-photo-preview">
@@ -234,13 +305,15 @@ export function FoodPhotoAnalyzer({
         </div>
       )}
 
+      {step !== "choice" && <div className={styles.destination}><CalendarDays size={16} aria-hidden="true" /><span>Registro em <strong>{displayDay(photoDay)}</strong></span>{day !== photoDay && <button className="text-button" type="button" disabled={saving || step === "analyzing"} onClick={() => setPhotoDay(day)}>Usar {displayDay(day)}</button>}</div>}
+
       {step === "preview" && (
         <div className="food-photo-actions">
           <button className="primary-button" type="button" onClick={() => void analyze()}>
             <Sparkles size={18} /> ANALISAR COM IA
           </button>
-          <button className="secondary-button" type="button" onClick={reset}>
-            <RotateCcw size={18} /> TIRAR OUTRA
+          <button className="secondary-button" type="button" onClick={discard}>
+            <RotateCcw size={18} /> ESCOLHER OUTRA FOTO
           </button>
         </div>
       )}
@@ -249,39 +322,41 @@ export function FoodPhotoAnalyzer({
         <div className="food-photo-loading" role="status">
           <LoaderCircle className="spin" size={24} />
           <strong>Analisando sua refeição...</strong>
-          <span>Estimando alimentos, porção, calorias e macros.</span>
+          <span>Estimando alimentos, porção, calorias e macros. Pode levar alguns instantes.</span>
         </div>
       )}
 
       {step === "review" && analysis?.meal && (
-        <form className="food-photo-review" onSubmit={save}>
-          <div className="food-photo-review-heading">
+        <form className="food-photo-review" noValidate onSubmit={save} aria-busy={saving}>
+          <div className={`food-photo-review-heading ${styles.reviewHeading}`} ref={reviewHeading} tabIndex={-1}>
             <Check size={18} />
             <div>
               <strong>Confira antes de registrar</strong>
-              <span>Os valores são estimativas e podem ser ajustados.</span>
+              <span>Os valores são estimativas. Ajuste as porções; calorias são arredondadas para o valor inteiro mais próximo.</span>
             </div>
           </div>
-          {(analysis.meal.confidence === "low" || analysis.quality === "low") && (
-            <p className="food-photo-warning"><AlertTriangle size={16} /> Verifique com atenção os campos abaixo.</p>
+          {(analysis.meal.confidence === "low" || analysis.quality === "low" || analysis.qualityIssues.length > 0) && (
+            <div className={styles.warning}><p><AlertTriangle size={17} aria-hidden="true" />A estimativa precisa de atenção</p><ul>{(analysis.qualityIssues.length ? analysis.qualityIssues : ["Confira os alimentos, as porções e os valores abaixo antes de registrar."]).map((issue, index) => <li key={`${issue}-${index}`}>{issue}</li>)}</ul></div>
           )}
+          <fieldset className={styles.fields} disabled={saving}>
           <div className="food-photo-fields">
-            <label className="wide-field">Alimento ou refeição<input required maxLength={100} value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} /></label>
+            <label className="wide-field">Alimento ou refeição<input ref={nameInput} required maxLength={100} value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} /></label>
             <label>Tipo<select value={draft.meal_type} onChange={(event) => setDraft({ ...draft, meal_type: event.target.value as MealType })}>{Object.entries(MEAL_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label>Calorias<input required type="number" min={1} max={10000} value={draft.calories} onChange={(event) => setDraft({ ...draft, calories: event.target.value })} /></label>
-            <label>Proteína (g)<input type="number" min={0} max={1000} step="0.1" value={draft.protein_g} onChange={(event) => setDraft({ ...draft, protein_g: event.target.value })} /></label>
-            <label>Carboidratos (g)<input type="number" min={0} max={1500} step="0.1" value={draft.carbs_g} onChange={(event) => setDraft({ ...draft, carbs_g: event.target.value })} /></label>
-            <label>Gorduras (g)<input type="number" min={0} max={1000} step="0.1" value={draft.fat_g} onChange={(event) => setDraft({ ...draft, fat_g: event.target.value })} /></label>
+            <label>Calorias (kcal)<input required type="text" inputMode="decimal" maxLength={8} value={draft.calories} onChange={(event) => setDraft({ ...draft, calories: event.target.value })} /></label>
+            <label>Proteína (g)<input type="text" inputMode="decimal" maxLength={7} value={draft.protein_g} onChange={(event) => setDraft({ ...draft, protein_g: event.target.value })} /></label>
+            <label>Carboidratos (g)<input type="text" inputMode="decimal" maxLength={7} value={draft.carbs_g} onChange={(event) => setDraft({ ...draft, carbs_g: event.target.value })} /></label>
+            <label>Gorduras (g)<input type="text" inputMode="decimal" maxLength={7} value={draft.fat_g} onChange={(event) => setDraft({ ...draft, fat_g: event.target.value })} /></label>
           </div>
+          </fieldset>
           {analysis.meal.notes && <p className="food-photo-note">{analysis.meal.notes}</p>}
           <div className="food-photo-actions">
-            <button className="primary-button" disabled={saving}>{saving ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />} CONFIRMAR E REGISTRAR</button>
-            <button className="secondary-button" type="button" disabled={saving} onClick={reset}>CANCELAR</button>
+            <button className="primary-button" disabled={saving}>{saving ? <LoaderCircle className="spin" size={18} /> : <Check size={18} />} {saving ? "REGISTRANDO..." : "CONFIRMAR E REGISTRAR"}</button>
+            <button className="secondary-button" type="button" disabled={saving} onClick={discard}>DESCARTAR ANÁLISE</button>
           </div>
         </form>
       )}
 
-      {message && <p className={message.includes("registrada") ? "success-message" : "notice"}>{message}</p>}
+      <div role="status" aria-live="polite" aria-atomic="true">{message && <p className={messageKind === "success" ? "success-message" : "notice"}>{message}</p>}</div>
       <small className="nutrition-disclaimer">A foto é usada somente durante a análise e não é armazenada. A IA fornece estimativas; revise porções, calorias e macros antes de confirmar.</small>
     </section>
   );

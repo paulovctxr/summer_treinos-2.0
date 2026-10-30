@@ -1,0 +1,37 @@
+.card { min-width: 0; }
+.card :global(.section-heading) p { font-size: 13px; line-height: 1.6; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 18px 0; padding: 0; list-style: none; }
+.steps li { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.steps li > span { display: grid; place-items: center; flex-shrink: 0; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 50%; background: #fff; font-size: 11px; font-weight: 700; }
+.steps li[aria-current] { color: var(--ink); font-weight: 700; }
+.steps li[aria-current] > span, .steps li[data-complete] > span { color: #111; background: var(--brand-yellow, #ffd600); border-color: #d6bb38; }
+.hint { max-width: 600px; margin: 12px 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.card :global(.food-photo-preview) { margin-inline: auto; background: #f8f8f5; }
+.card :global(.food-photo-preview) img { object-fit: contain; max-height: 300px; }
+.destination { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; color: var(--muted); font-size: 12px; }
+.destination strong { color: var(--ink); }
+.destination button { min-height: 44px; }
+.card :global(.food-photo-review) { padding: 18px; }
+.reviewHeading { border-radius: 6px; }
+.reviewHeading strong { font-size: 15px; }
+.reviewHeading span { font-size: 12px; line-height: 1.6; }
+.fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.card .fields label { min-width: 0; font-size: 12px; }
+.card .fields input, .card .fields select { min-width: 0; min-height: 46px; border-color: #c9c9c1; background: #fff; font-size: 14px; }
+.fields:disabled { opacity: .7; }
+.card :global(.food-photo-note) { padding: 12px; border-radius: 10px; background: #fff; font-size: 12px; line-height: 1.6; }
+.warning { margin-top: 14px; padding: 12px; border: 1px solid #e8ca65; border-radius: 10px; background: #fff5cf; color: #5f4c00; font-size: 12px; line-height: 1.7; }
+.warning p { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 700; }
+.warning svg { flex-shrink: 0; }
+.warning ul { margin: 6px 0 0; padding-left: 21px; }
+.card :global(.nutrition-disclaimer) { display: block; margin-top: 16px; font-size: 12px; line-height: 1.7; }
+@media (max-width: 600px) {
+  .card { padding: 16px; }
+  .steps { gap: 7px 10px; }
+  .steps li { gap: 5px; font-size: 11px; }
+  .steps li > span { width: 21px; height: 21px; }
+  .card :global(.food-photo-review) { padding: 12px; }
+  .card :global(.food-photo-fields) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card .fields input, .card .fields select { font-size: 16px; }
+  .card :global(.food-photo-actions) > button { min-height: 48px; padding-inline: 12px; font-size: 11px; }
+}
