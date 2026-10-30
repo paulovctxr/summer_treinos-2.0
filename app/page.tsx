@@ -6,6 +6,9 @@ import type { User } from "@supabase/supabase-js";
 import { PanelLoading } from "@/components/panel-loading";
 import { NutritionistCard } from "@/components/nutritionist-card";
 import { RestTimer, WorkoutClock } from "@/components/workout-clock";
+import { ExerciseDemonstration } from "@/components/exercise-demonstration";
+import exerciseDemoStyles from "@/components/exercise-demonstration.module.css";
+import { EXERCISE_MEDIA } from "@/lib/exercise-media-catalog";
 import { TAB_PATHS, tabFromHash, type AppTab } from "@/lib/navigation";
 import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
 const PlanPanel = dynamic(() => import("@/components/plan-panel").then((module) => module.PlanPanel), { loading: PanelLoading });
@@ -858,7 +861,8 @@ function Dashboard({ user }: { user: User }) {
               </p>
               <div className="exercise-checklist">
                 {active.workout.exercises.map((exercise) => (
-                  <label key={exercise.id}>
+                  <div className={exerciseDemoStyles.sessionExercise} key={exercise.id}>
+                  <label>
                     <input
                       type="checkbox"
                       checked={checked.includes(exercise.id)}
@@ -884,6 +888,8 @@ function Dashboard({ user }: { user: User }) {
                       {exercise.notes && <small>{exercise.notes}</small>}
                     </span>
                   </label>
+                  <ExerciseDemonstration name={exercise.name} />
+                  </div>
                 ))}
               </div>
               <RestTimer />
@@ -1101,6 +1107,7 @@ function Dashboard({ user }: { user: User }) {
               {draft && (
                 <form className="form-card workout-form" ref={editorRef} key={draft.id} onSubmit={saveWorkout} aria-busy={busy}>
                   <fieldset className="workout-fieldset" disabled={busy}>
+                  <datalist id="exercise-demo-options">{EXERCISE_MEDIA.map((media) => <option key={media.id} value={media.title} />)}</datalist>
                   <div className="section-heading">
                     <div><h3>
                       {fitness.workouts.some((w) => w.id === draft.id)
@@ -1160,6 +1167,7 @@ function Dashboard({ user }: { user: User }) {
                     </label>
                   </div>
                   <div className="editor-section-title"><h4>Exercícios</h4><span>Use as setas para ajustar a ordem</span></div>
+                  <span className="draft-status">As sugestões de nome incluem demonstrações em fotos. Você também pode digitar outros exercícios.</span>
                   {draft.exercises.map((exercise, index) => (
                     <div className="exercise-editor" key={exercise.id}>
                       <div className="exercise-editor-heading">
@@ -1173,6 +1181,7 @@ function Dashboard({ user }: { user: User }) {
                       <label className="exercise-name">
                         Nome do exercício
                         <input
+                          list="exercise-demo-options"
                           value={exercise.name}
                           maxLength={80}
                           required
@@ -1324,6 +1333,7 @@ function Dashboard({ user }: { user: User }) {
                           />
                         </label>
                       </div>
+                      <div className={exerciseDemoStyles.editorDemo}><ExerciseDemonstration name={exercise.name} showUnavailable /></div>
                     </div>
                   ))}
                   <button
