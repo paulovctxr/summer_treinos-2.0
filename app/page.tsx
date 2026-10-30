@@ -8,7 +8,7 @@ import { NutritionistCard } from "@/components/nutritionist-card";
 import { RestTimer, WorkoutClock } from "@/components/workout-clock";
 import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import exerciseDemoStyles from "@/components/exercise-demonstration.module.css";
-import { EXERCISE_MEDIA } from "@/lib/exercise-media-catalog";
+import { ExerciseNameInput } from "@/components/exercise-name-input";
 import { TAB_PATHS, tabFromHash, type AppTab } from "@/lib/navigation";
 import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
 const PlanPanel = dynamic(() => import("@/components/plan-panel").then((module) => module.PlanPanel), { loading: PanelLoading });
@@ -1107,7 +1107,6 @@ function Dashboard({ user }: { user: User }) {
               {draft && (
                 <form className="form-card workout-form" ref={editorRef} key={draft.id} onSubmit={saveWorkout} aria-busy={busy}>
                   <fieldset className="workout-fieldset" disabled={busy}>
-                  <datalist id="exercise-demo-options">{EXERCISE_MEDIA.map((media) => <option key={media.id} value={media.title} />)}</datalist>
                   <div className="section-heading">
                     <div><h3>
                       {fitness.workouts.some((w) => w.id === draft.id)
@@ -1180,23 +1179,7 @@ function Dashboard({ user }: { user: User }) {
                       </div>
                       <label className="exercise-name">
                         Nome do exercício
-                        <input
-                          list="exercise-demo-options"
-                          value={exercise.name}
-                          maxLength={80}
-                          required
-                          placeholder="Ex.: Supino reto"
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              exercises: draft.exercises.map((x) =>
-                                x.id === exercise.id
-                                  ? { ...x, name: e.target.value }
-                                  : x,
-                              ),
-                            })
-                          }
-                        />
+                        <ExerciseNameInput value={exercise.name} onChange={(name) => setDraft({ ...draft, exercises: draft.exercises.map((item) => item.id === exercise.id ? { ...item, name } : item) })} />
                       </label>
                       <label>
                         Séries
