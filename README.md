@@ -68,6 +68,7 @@ Aplicativo Next.js com autenticação Supabase, fichas pessoais persistentes, re
 - Fichas com exercícios, séries e repetições; edição, busca e exclusão.
 - Importação de ficha por câmera ou galeria, com até quatro fotos, leitura por IA, alertas de baixa confiança e revisão obrigatória antes de salvar.
 - Campos de carga, unidade, descanso e observações nos treinos importados e manuais.
+- Demonstrações de 54 exercícios, com 108 fotos locais e associações revisadas a partir dos nomes usados nas fichas. Abreviações equivalentes recebem imagens automaticamente; códigos, protocolos e nomes de exercícios combinados são preservados, com uma demonstração para cada movimento reconhecido.
 - Sessão de treino com cronômetro, checklist, histórico real e meta semanal. O andamento e o descanso são guardados no navegador por conta; recarregar, fechar a aba ou sair da conta preserva a sessão, e o tempo inclui o período fora do site. Concluir ou encerrar remove o andamento local. Outro aparelho/navegador não retoma esta sessão; limpar os dados do site também a remove. Se o armazenamento estiver indisponível, a interface avisa para manter a página aberta.
 - Interface responsiva e manifesto para adicionar à tela inicial do celular. Internet é necessária; não há promessa de uso offline.
 - `/admin`: painel exclusivo do proprietário, alunos paginados, pesquisa por nome/e-mail/matrícula disponível, filtros por situação e alertas de vencimento em sete dias.

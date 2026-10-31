@@ -1,4 +1,5 @@
 // Photos are copied unchanged from the pinned public-domain dataset listed in docs/exercise-media-sources.md.
+import { EXERCISE_MEDIA_EXPANSION } from './exercise-media-expansion.ts';
 export type ExerciseMedia = {
   id: string;
   title: string;
@@ -9,6 +10,7 @@ export type ExerciseMedia = {
 };
 
 export const EXERCISE_MEDIA: readonly ExerciseMedia[] = [
+  ...EXERCISE_MEDIA_EXPANSION,
   {
     "id": "supino-barra",
     "title": "Supino reto com barra",

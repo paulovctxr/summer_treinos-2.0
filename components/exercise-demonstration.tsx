@@ -3,11 +3,11 @@
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Images, X } from "lucide-react";
-import { exerciseMediaFor, type ExerciseMedia } from "@/lib/exercise-media";
+import { exerciseMediaReferencesFor, normalizeExerciseName, type ExerciseMedia } from "@/lib/exercise-media";
 import { useModalDialog } from "@/lib/use-modal-dialog";
 import styles from "./exercise-demonstration.module.css";
 
-function DemonstrationDialog({ media, onClose }: { media: ExerciseMedia; onClose: () => void }) {
+function DemonstrationDialog({ media, name, onClose }: { media: ExerciseMedia; name: string; onClose: () => void }) {
   const dialog = useModalDialog(onClose);
   const titleId = useId();
   const descriptionId = useId();
@@ -22,11 +22,14 @@ function DemonstrationDialog({ media, onClose }: { media: ExerciseMedia; onClose
     <div className={styles.overlay} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className={styles.dialog} ref={dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId}>
         <header className={styles.header}>
-          <div><p>DEMONSTRAÇÃO DO EXERCÍCIO</p><h2 id={titleId}>{media.title}</h2></div>
+          <div><p>DEMONSTRAÇÃO DO EXERCÍCIO</p><h2 id={titleId}>{name}</h2></div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Fechar demonstração"><X size={20} /></button>
         </header>
         <div className={styles.content}>
-          <p className={styles.description} id={descriptionId}>Compare as posições nas fotos. Confira a técnica e os ajustes do equipamento com o instrutor.</p>
+          <p className={styles.description} id={descriptionId}>
+            {normalizeExerciseName(name) !== normalizeExerciseName(media.title) && <>Referência em fotos: <strong>{media.title}</strong>. </>}
+            Compare as posições nas fotos e siga as séries, repetições, ritmo e variações da sua ficha. Confira a técnica e os ajustes do equipamento com o instrutor.
+          </p>
           <div className={styles.frames}>
             {media.images.map((src, index) => (
               <figure key={src}>
@@ -44,12 +47,18 @@ function DemonstrationDialog({ media, onClose }: { media: ExerciseMedia; onClose
 }
 
 export function ExerciseDemonstration({ name, showUnavailable = false }: { name: string; showUnavailable?: boolean }) {
-  const media = exerciseMediaFor(name);
-  const [openId, setOpenId] = useState<string | null>(null);
-  if (!media) return showUnavailable && name.trim().length >= 3 ? <p className={styles.unavailable}>Demonstração ainda não cadastrada para este exercício.</p> : null;
+  const references = exerciseMediaReferencesFor(name);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  if (!references.length) return showUnavailable && name.trim().length >= 3 ? <p className={styles.unavailable}>Demonstração ainda não cadastrada para este exercício.</p> : null;
+  const combined = name.includes("+");
 
   return <div className={styles.demo}>
-    <button type="button" className={styles.trigger} aria-label={`Ver demonstração de ${media.title}`} aria-haspopup="dialog" onClick={() => setOpenId(media.id)}><Images size={18} aria-hidden="true" />Ver demonstração</button>
-    {openId === media.id && <DemonstrationDialog media={media} onClose={() => setOpenId(null)} />}
+    {references.map(({ media, name: movementName }) => {
+      const key = `${media.id}:${movementName}`;
+      return <div className={styles.reference} key={key}>
+        <button type="button" className={styles.trigger} aria-label={`Ver demonstração de ${movementName}`} aria-haspopup="dialog" onClick={() => setOpenKey(key)}><Images size={18} aria-hidden="true" />{combined ? `Ver: ${movementName}` : "Ver demonstração"}</button>
+        {openKey === key && <DemonstrationDialog media={media} name={movementName} onClose={() => setOpenKey(null)} />}
+      </div>;
+    })}
   </div>;
 }

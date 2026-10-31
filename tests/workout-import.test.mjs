@@ -51,7 +51,8 @@ test('digitalização padroniza equivalências com imagem e preserva o texto ori
   assert.equal(rope.name, 'Tríceps na polia com corda');
   assert.equal(vague.name, 'Supino');
   assert.equal(vague.needsReview, true);
-  assert.equal(smith.name, 'Agachamento no smith');
+  assert.equal(smith.name, 'Agachamento no Smith');
+  assert.equal(smith.originalName, 'Agachamento no smith');
   assert.equal(cable.name, 'Remada unilateral no cabo');
   const saved = workoutImportToFitness(analysis)[0].exercises;
   const { id: savedId, ...savedFields } = saved[0];
@@ -65,4 +66,17 @@ test('salvar revisão também padroniza alias editado sem mudar a variação esc
   const analysis = normalizeWorkoutImport({ quality: 'good', workouts: [{ name: 'A', exercises: [{ name: 'Supino', sets: 3, repetitions: '10', confidence: 'high' }] }] });
   analysis.workouts[0].exercises[0].name = 'Supino inclinado c/ halteres';
   assert.equal(workoutImportToFitness(analysis)[0].exercises[0].name, 'Supino inclinado com halteres');
+});
+
+test('a importação conserva protocolos, códigos, cardio e exercícios combinados ao oferecer fotos', () => {
+  const names = ['Cad. abdutora', 'Cadeira abdutora c/ isometria final (4/5)', 'Esteira - alternar corrida/caminhar', 'Cad. extensora + infra solo'];
+  const analysis = normalizeWorkoutImport({ quality: 'good', workouts: [{ name: 'A', exercises: names.map(name => ({ name, sets: 4, repetitions: '8–10', restSeconds: 90, notes: 'Manter orientação do instrutor', confidence: 'high' })) }] });
+  const saved = workoutImportToFitness(analysis)[0].exercises;
+  assert.deepEqual(saved.map(exercise => exercise.name), ['Cadeira abdutora', ...names.slice(1)]);
+  for (const exercise of saved) {
+    assert.equal(exercise.sets, 4);
+    assert.equal(exercise.reps, '8–10');
+    assert.equal(exercise.restSeconds, 90);
+    assert.equal(exercise.notes, 'Manter orientação do instrutor');
+  }
 });

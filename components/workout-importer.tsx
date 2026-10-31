@@ -35,7 +35,7 @@ import type { Workout } from "@/lib/fitness";
 import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import { ExerciseNameInput } from "@/components/exercise-name-input";
 import { ExerciseRepetitionsInput } from "@/components/exercise-repetitions-input";
-import { matchExerciseMedia } from "@/lib/exercise-media";
+import { exerciseMediaReferencesFor, matchExerciseMedia } from "@/lib/exercise-media";
 import styles from "./workout-importer.module.css";
 
 type Step =
@@ -59,10 +59,11 @@ type AnalyzeResponse = {
 
 function ImportExerciseMedia({ exercise }: { exercise: ImportedExercise }) {
   const match = matchExerciseMedia(exercise.name);
+  const references = exerciseMediaReferencesFor(exercise.name);
   return <div className={styles.mediaReview}>
     {exercise.originalName && exercise.originalName !== exercise.name && <p className={styles.originalName}>Identificado na foto: <strong>{exercise.originalName}</strong></p>}
-    {match.media ? <>
-      <p className={styles.matched}><Images size={16} aria-hidden="true" />Nome do catálogo com demonstração</p>
+    {references.length > 0 ? <>
+      <p className={styles.matched}><Images size={16} aria-hidden="true" />{exercise.name.includes("+") ? "Demonstrações dos movimentos identificados" : "Exercício com demonstração"}</p>
       <ExerciseDemonstration name={exercise.name} />
     </> : <p className={styles.matchHint}>{match.kind === "ambiguous" ? "Confirme a variação do exercício nas sugestões. O nome da foto foi mantido para não trocar a execução." : "Ainda sem demonstração para este nome. O exercício foi mantido; você pode conferir as sugestões."}</p>}
   </div>;

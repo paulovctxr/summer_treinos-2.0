@@ -21,7 +21,7 @@ test('cada alias identifica somente a variação revisada e tolera acentos, caix
 });
 
 test('nome desconhecido ou variação sem demonstração não recebe imagem por aproximação', () => {
-  for (const name of ['', 'Exercício personalizado sem catálogo', 'Agachamento no smith', 'Rosca direta na polia', 'Leg press horizontal']) {
+  for (const name of ['', 'Exercício personalizado sem catálogo', 'Agachamento no smith unilateral', 'Rosca direta na polia unilateral', 'Leg press horizontal']) {
     assert.equal(exerciseMediaFor(name), null, name);
   }
   assert.notEqual(exerciseMediaFor('Supino reto com barra')?.id, exerciseMediaFor('Supino reto com halteres')?.id);

@@ -1,4 +1,7 @@
-.demo { min-width: 0; }
+.demo { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.reference { min-width: 0; max-width: 100%; }
+.trigger { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.trigger > svg { flex-shrink: 0; }
 .trigger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid #e4d78b; border-radius: 10px; color: #554600; background: #fff9d9; font-size: 13px; font-weight: 600; line-height: 1.4; }
 .trigger:hover { background: #fff3ad; border-color: #b5a443; }
 .trigger:disabled { opacity: .5; cursor: not-allowed; }

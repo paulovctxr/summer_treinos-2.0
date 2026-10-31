@@ -1,4 +1,4 @@
-import { matchExerciseMedia, type ExerciseMediaMatch } from './exercise-media.ts';
+import { exerciseMediaReferencesFor, matchExerciseMedia, type ExerciseMediaMatch } from './exercise-media.ts';
 
 export type ExerciseCoverageRow = { name: string; occurrences: number; canonicalName: string; hasImages: boolean; match: ExerciseMediaMatch['kind'] };
 
@@ -20,7 +20,7 @@ export function exerciseCoverage(records: unknown[]) {
   }
   const rows: ExerciseCoverageRow[] = Array.from(counts, ([name, occurrences]) => {
     const match = matchExerciseMedia(name);
-    return { name, occurrences, canonicalName: match.canonicalName, hasImages: Boolean(match.media), match: match.kind };
+    return { name, occurrences, canonicalName: match.canonicalName, hasImages: exerciseMediaReferencesFor(name).length > 0, match: match.kind };
   });
   return rows.sort((a, b) => Number(a.hasImages) - Number(b.hasImages) || b.occurrences - a.occurrences || a.name.localeCompare(b.name, 'pt-BR'));
 }
