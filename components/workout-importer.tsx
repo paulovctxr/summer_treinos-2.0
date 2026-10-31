@@ -34,6 +34,7 @@ import {
 import type { Workout } from "@/lib/fitness";
 import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import { ExerciseNameInput } from "@/components/exercise-name-input";
+import { ExerciseRepetitionsInput } from "@/components/exercise-repetitions-input";
 import { matchExerciseMedia } from "@/lib/exercise-media";
 import styles from "./workout-importer.module.css";
 
@@ -785,6 +786,7 @@ export function WorkoutImporter({
                               type="number"
                               min={1}
                               max={20}
+                              placeholder="Ex.: 3"
                               value={exercise.sets ?? ""}
                               onChange={(event) =>
                                 setExercise(workout.id, exercise.id, {
@@ -797,13 +799,11 @@ export function WorkoutImporter({
                           </label>
                           <label>
                             Repetições
-                            <input
-                              maxLength={40}
-                              placeholder="?"
+                            <ExerciseRepetitionsInput
                               value={exercise.repetitions}
-                              onChange={(event) =>
+                              onChange={(repetitions) =>
                                 setExercise(workout.id, exercise.id, {
-                                  repetitions: event.target.value,
+                                  repetitions,
                                 })
                               }
                             />

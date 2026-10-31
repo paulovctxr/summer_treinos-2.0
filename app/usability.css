@@ -33,7 +33,7 @@ button:disabled { cursor: not-allowed; }
 .editor-section-title h4 { margin: 0; }
 .editor-section-title > span { color: var(--muted); font-size: 12px; }
 .workout-form .exercise-editor {
-  grid-template-columns: minmax(0, 3fr) minmax(65px, .65fr) minmax(80px, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(75px, .65fr) minmax(125px, 1.2fr);
   gap: 14px 12px;
   padding: 16px;
   border: 1px solid var(--line);
@@ -46,6 +46,13 @@ button:disabled { cursor: not-allowed; }
 .exercise-order-controls .icon-button { border-radius: 9px; }
 .workout-form .exercise-extra { grid-template-columns: minmax(0, 1fr) minmax(70px, .6fr) minmax(0, 1fr) minmax(0, 2fr); }
 .workout-form .exercise-extra textarea { min-height: 70px; }
+.workout-form .exercise-repetitions-input, .exercise-review-grid .exercise-repetitions-input {
+  width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #fcfcfa; color: var(--ink); font: inherit; font-size: 16px;
+  font-weight: 500; line-height: 1.5; letter-spacing: normal; text-transform: none;
+  overflow: hidden; overflow-wrap: anywhere; resize: none;
+}
 .workout-form-actions {
   position: sticky;
   bottom: 16px;
@@ -80,6 +87,14 @@ button:disabled { cursor: not-allowed; }
 .session-progress { height: 8px; margin: 0; }
 .session-card #session-completion-hint { margin: 12px 0 0; font-size: 13px; }
 .exercise-checklist label { min-height: 70px; }
+.exercise-checklist label > span { min-width: 0; flex: 1; }
+.exercise-checklist strong { line-height: 1.45; }
+.exercise-checklist .session-prescription { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.exercise-checklist .session-prescription > span { display: block; min-width: 0; }
+.exercise-checklist .session-prescription b { font-weight: 600; }
+.exercise-checklist small { line-height: 1.6; }
+.session-card .session-resume-hint { margin: 14px 0 0; }
+.session-card .session-storage-warning { padding: 12px; border-radius: 10px; background: #fff2d8; color: #704100; }
 .exercise-checklist label:has(input:checked) { border-color: #c8ae25; background: #fff9d9; }
 .exercise-checklist input { accent-color: var(--brand-red); }
 .exercise-checklist input:checked + span > strong { text-decoration: line-through; text-decoration-color: #b7a952; }

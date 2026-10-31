@@ -9,8 +9,11 @@ import { RestTimer, WorkoutClock } from "@/components/workout-clock";
 import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import exerciseDemoStyles from "@/components/exercise-demonstration.module.css";
 import { ExerciseNameInput } from "@/components/exercise-name-input";
+import { ExerciseRepetitionsInput } from "@/components/exercise-repetitions-input";
 import { TAB_PATHS, tabFromHash, type AppTab } from "@/lib/navigation";
 import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
+import { useActiveWorkout } from "@/lib/use-active-workout";
+import { restTimerStorageKey } from "@/lib/workout-clock-state";
 const PlanPanel = dynamic(() => import("@/components/plan-panel").then((module) => module.PlanPanel), { loading: PanelLoading });
 const ProWorkspace = dynamic(() => import("@/components/pro-workspace").then((module) => module.ProWorkspace), { loading: PanelLoading });
 const ProPaywall = dynamic(() => import("@/components/pro-paywall").then((module) => module.ProPaywall));
@@ -273,11 +276,8 @@ function Dashboard({ user }: { user: User }) {
   const searchRef = useRef<HTMLInputElement>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [active, setActive] = useState<{
-    workout: Workout;
-    startedAt: number;
-  } | null>(null);
-  const [checked, setChecked] = useState<string[]>([]);
+  const { active, ready: sessionReady, storageIssue: sessionStorageIssue, start: startSession, toggle: toggleExercise, clear: clearSession } = useActiveWorkout(user.id);
+  const checked = active?.checked ?? [];
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
   const [notice, setNotice] = useState("");
@@ -368,7 +368,7 @@ function Dashboard({ user }: { user: User }) {
     void loadFitness();
   }, [loadFitness]);
   useEffect(() => {
-    if (!active && !draftDirty) return;
+    if (!(active && sessionStorageIssue) && !draftDirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
@@ -376,7 +376,12 @@ function Dashboard({ user }: { user: User }) {
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
     };
-  }, [active, draftDirty]);
+  }, [active, sessionStorageIssue, draftDirty]);
+  useEffect(() => {
+    if (dataReady && active && fitness.sessions.some((session) => session.id === active.id)) {
+      clearSession(active.id);
+    }
+  }, [dataReady, active, fitness.sessions, clearSession]);
   const draftId = draft?.id;
   useEffect(() => {
     if (draftId && activeTab === "Treinos") editorRef.current?.scrollIntoView({ block: "start" });
@@ -562,6 +567,7 @@ function Dashboard({ user }: { user: User }) {
     return true;
   }
   function startWorkout(workout: Workout) {
+    if (!sessionReady) return;
     if (active) {
       setNotice(
         "Você já tem um treino em andamento. Conclua ou encerre antes de começar outro.",
@@ -572,15 +578,22 @@ function Dashboard({ user }: { user: User }) {
       setNotice("Adicione pelo menos um exercício à ficha antes de iniciar o treino.");
       return;
     }
-    setActive({ workout, startedAt: Date.now() });
-    setChecked([]);
+    try {
+      if (!startSession(workout)) {
+        setNotice("Você já tem um treino em andamento. Continue o treino recuperado abaixo.");
+        return;
+      }
+    } catch {
+      setNotice("Confira os exercícios, séries e repetições desta ficha antes de iniciar.");
+      return;
+    }
     setNotice("Treino iniciado. Marque os exercícios conforme terminar.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   async function finishWorkout() {
     if (!active || checked.length !== active.workout.exercises.length) return;
     const session = {
-      id: crypto.randomUUID(),
+      id: active.id,
       workoutId: active.workout.id,
       title: active.workout.title,
       completedAt: new Date().toISOString(),
@@ -603,21 +616,21 @@ function Dashboard({ user }: { user: User }) {
     };
     if (
       await persist(
-        (current) => ({
+        (current) => current.sessions.some((saved) => saved.id === session.id) ? current : ({
           ...current,
           sessions: [...current.sessions, session].slice(-MAX_SESSIONS),
         }),
         "Treino concluído! Mais um passo na sua evolução.",
       )
     ) {
-      setActive(null);
+      clearSession(active.id);
       setActiveTab("Progresso");
     }
   }
   async function logout() {
     if (
-      active &&
-      !window.confirm("Sair e encerrar o treino em andamento sem registrá-lo?")
+      active && sessionStorageIssue &&
+      !window.confirm("Este navegador não conseguiu guardar o treino em andamento. Sair da conta e perder este andamento?")
     )
       return;
     if (!canReplaceDraft()) return;
@@ -663,7 +676,7 @@ function Dashboard({ user }: { user: User }) {
           </button>
           <button
             className="small-start"
-            disabled={busy || Boolean(active) || !workout.exercises.length}
+            disabled={busy || !sessionReady || Boolean(active) || !workout.exercises.length}
             onClick={() => startWorkout(workout)}
           >
             INICIAR <Play size={14} />
@@ -847,6 +860,11 @@ function Dashboard({ user }: { user: User }) {
                 </div>
                 <WorkoutClock startedAt={active.startedAt} />
               </div>
+              <p className={sessionStorageIssue ? "session-storage-warning" : "session-resume-hint"} role={sessionStorageIssue ? "alert" : undefined}>
+                {sessionStorageIssue
+                  ? "Este navegador não conseguiu guardar o treino. Mantenha esta página aberta para não perder o andamento."
+                  : "Pode sair e voltar: o tempo e os exercícios marcados ficam guardados neste navegador até você concluir ou encerrar o treino."}
+              </p>
               <div className="session-progress-copy" aria-live="polite" aria-atomic="true">
                 <span>{checked.length} de {active.workout.exercises.length} exercícios concluídos</span>
                 <strong>{Math.round(checked.length / active.workout.exercises.length * 100)}%</strong>
@@ -866,25 +884,23 @@ function Dashboard({ user }: { user: User }) {
                     <input
                       type="checkbox"
                       checked={checked.includes(exercise.id)}
-                      onChange={(e) =>
-                        setChecked((current) =>
-                          e.target.checked
-                            ? [...current, exercise.id]
-                            : current.filter((id) => id !== exercise.id),
-                        )
-                      }
+                      disabled={busy}
+                      onChange={(e) => toggleExercise(active.id, exercise.id, e.target.checked)}
                     />
                     <span>
                       <strong>{exercise.name}</strong>
-                      <small>
-                        {exercise.sets} séries × {exercise.reps}
+                      <small className="session-prescription">
+                        <span><b>Séries:</b> {exercise.sets}</span>
+                        <span><b>Repetições:</b> {exercise.reps}</span>
+                      </small>
+                      {(typeof exercise.weight === "number" || typeof exercise.restSeconds === "number") && <small className="session-exercise-extra">
                         {typeof exercise.weight === "number"
-                          ? ` · ${exercise.weight} ${exercise.weightUnit || "kg"}`
+                          ? `Carga: ${exercise.weight} ${exercise.weightUnit || "kg"}`
                           : ""}
                         {typeof exercise.restSeconds === "number"
-                          ? ` · descanso ${exercise.restSeconds}s`
+                          ? `${typeof exercise.weight === "number" ? " · " : ""}Descanso: ${exercise.restSeconds}s`
                           : ""}
-                      </small>
+                      </small>}
                       {exercise.notes && <small>{exercise.notes}</small>}
                     </span>
                   </label>
@@ -892,7 +908,7 @@ function Dashboard({ user }: { user: User }) {
                   </div>
                 ))}
               </div>
-              <RestTimer />
+              <RestTimer storageKey={restTimerStorageKey(user.id, active.id)} />
               <div className="session-actions">
                 <button
                   className="primary-button"
@@ -910,7 +926,7 @@ function Dashboard({ user }: { user: User }) {
                   disabled={busy}
                   onClick={() => {
                     if (window.confirm("Encerrar sem registrar este treino?"))
-                      setActive(null);
+                      clearSession(active.id);
                   }}
                 >
                   Encerrar sem salvar
@@ -940,7 +956,7 @@ function Dashboard({ user }: { user: User }) {
                   <div className="hero-actions">
                     <button
                       className="hero-primary"
-                      disabled={busy || Boolean(active)}
+                      disabled={busy || !sessionReady || Boolean(active)}
                       onClick={() =>
                         first ? startWorkout(first) : openAddWorkout()
                       }
@@ -1187,6 +1203,7 @@ function Dashboard({ user }: { user: User }) {
                           type="number"
                           min={1}
                           max={20}
+                          placeholder="Ex.: 3"
                           required
                           value={exercise.sets || ""}
                           onChange={(e) =>
@@ -1203,17 +1220,15 @@ function Dashboard({ user }: { user: User }) {
                       </label>
                       <label>
                         Repetições
-                        <input
+                        <ExerciseRepetitionsInput
                           value={exercise.reps}
-                          maxLength={40}
                           required
-                          placeholder="Informe as repetições"
-                          onChange={(e) =>
+                          onChange={(reps) =>
                             setDraft({
                               ...draft,
                               exercises: draft.exercises.map((x) =>
                                 x.id === exercise.id
-                                  ? { ...x, reps: e.target.value }
+                                  ? { ...x, reps }
                                   : x,
                               ),
                             })
