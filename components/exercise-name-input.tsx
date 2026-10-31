@@ -5,7 +5,7 @@ import { EXERCISE_MEDIA } from "@/lib/exercise-media-catalog";
 import { normalizeExerciseName } from "@/lib/exercise-media";
 import styles from "./exercise-name-input.module.css";
 
-export function ExerciseNameInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function ExerciseNameInput({ value, onChange, inlineSuggestions = false }: { value: string; onChange: (value: string) => void; inlineSuggestions?: boolean }) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(-1);
@@ -19,7 +19,7 @@ export function ExerciseNameInput({ value, onChange }: { value: string; onChange
       if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && options.length) { event.preventDefault(); setOpen(true); setSelected((current) => event.key === 'ArrowDown' ? (current + 1) % options.length : (current <= 0 ? options.length - 1 : current - 1)); }
       if (event.key === 'Enter' && visible && selected >= 0) { event.preventDefault(); choose(options[selected].title); }
     }} />
-    {visible && <div id={`${id}-options`} role="listbox" aria-label="Exercícios sugeridos" className={styles.options}>
+    {visible && <div id={`${id}-options`} role="listbox" aria-label="Exercícios sugeridos" className={`${styles.options} ${inlineSuggestions ? styles.inlineOptions : ""}`}>
       {options.map((media, index) => <div key={media.id} id={`${id}-${index}`} role="option" aria-selected={selected === index} className={styles.option} onPointerDown={(event) => event.preventDefault()} onClick={(event) => { event.preventDefault(); choose(media.title); }}><strong>{media.title}</strong><small>Selecionar · demonstração em fotos</small></div>)}
     </div>}
   </div>;

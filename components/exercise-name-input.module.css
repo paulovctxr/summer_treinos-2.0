@@ -5,3 +5,4 @@
 .option:hover, .option[aria-selected=true] { background: #fff6bf; }
 .option strong { font-size: 14px; color: #171717; font-weight: 600; }
 .option small { font-size: 11px; color: #686868; }
+.inlineOptions { position: static; margin-top: 6px; max-height: 220px; }

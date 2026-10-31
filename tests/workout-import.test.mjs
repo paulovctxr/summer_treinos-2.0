@@ -36,3 +36,33 @@ test('blocks saving more imported workout blocks than available slots', () => {
   ] })
   assert.match(validateWorkoutImport(analysis, 1)[0], /espaço para apenas 1/i)
 })
+
+test('digitalização padroniza equivalências com imagem e preserva o texto original e os detalhes da ficha', () => {
+  const analysis = normalizeWorkoutImport({ quality: 'good', workouts: [{ name: 'A', exercises: [
+    { name: 'Supino reto c/ halteres', sets: 4, repetitions: '8–10', weight: 14, weightUnit: 'kg', restSeconds: 90, notes: 'Cadência lenta', confidence: 'high' },
+    { name: 'Triceps corda', sets: 3, repetitions: '12', confidence: 'high' },
+    { name: 'Supino', sets: 3, repetitions: '10', confidence: 'high' },
+    { name: 'Agachamento no smith', sets: 4, repetitions: '8', confidence: 'high' },
+    { name: 'Remada unilateral no cabo', sets: 3, repetitions: '12', confidence: 'high' },
+  ] }] });
+  const [bench, rope, vague, smith, cable] = analysis.workouts[0].exercises;
+  assert.equal(bench.name, 'Supino reto com halteres');
+  assert.equal(bench.originalName, 'Supino reto c/ halteres');
+  assert.equal(rope.name, 'Tríceps na polia com corda');
+  assert.equal(vague.name, 'Supino');
+  assert.equal(vague.needsReview, true);
+  assert.equal(smith.name, 'Agachamento no smith');
+  assert.equal(cable.name, 'Remada unilateral no cabo');
+  const saved = workoutImportToFitness(analysis)[0].exercises;
+  const { id: savedId, ...savedFields } = saved[0];
+  assert.ok(savedId);
+  assert.deepEqual(savedFields, { name: bench.name, sets: 4, reps: '8–10', weight: 14, weightUnit: 'kg', restSeconds: 90, notes: 'Cadência lenta' });
+  assert.ok(!('originalName' in saved[0]));
+  assert.equal(saved[2].name, 'Supino');
+});
+
+test('salvar revisão também padroniza alias editado sem mudar a variação escolhida', () => {
+  const analysis = normalizeWorkoutImport({ quality: 'good', workouts: [{ name: 'A', exercises: [{ name: 'Supino', sets: 3, repetitions: '10', confidence: 'high' }] }] });
+  analysis.workouts[0].exercises[0].name = 'Supino inclinado c/ halteres';
+  assert.equal(workoutImportToFitness(analysis)[0].exercises[0].name, 'Supino inclinado com halteres');
+});

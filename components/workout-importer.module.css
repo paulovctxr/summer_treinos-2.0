@@ -1,0 +1,6 @@
+.mediaReview { display: grid; gap: 10px; margin-top: 16px; padding: 14px; border: 1px solid #eadc9d; border-radius: 12px; background: #fffdf3; }
+.originalName { margin: 0; color: #686868; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.originalName strong { font-weight: 600; }
+.matched { display: flex; align-items: center; gap: 8px; margin: 0; color: #5c4d00; font-size: 13px; font-weight: 600; }
+.matched svg { flex-shrink: 0; }
+.matchHint { margin: 0; color: #68604b; font-size: 13px; line-height: 1.65; }

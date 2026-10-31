@@ -1,4 +1,5 @@
 import type { Workout } from "@/lib/fitness";
+import { canonicalExerciseName, matchExerciseMedia } from "./exercise-media.ts";
 
 export const MAX_IMPORT_IMAGES = 4;
 export const MAX_IMPORT_WORKOUTS = 8;
@@ -10,6 +11,7 @@ export type ImportConfidence = "high" | "medium" | "low";
 export type ImportedExercise = {
   id: string;
   name: string;
+  originalName?: string;
   sets: number | null;
   repetitions: string;
   weight: number | null;
@@ -85,7 +87,10 @@ export function normalizeWorkoutImport(value: unknown): WorkoutImportAnalysis {
         .slice(0, MAX_IMPORT_EXERCISES)
         .flatMap((rawExercise) => {
           const exercise = object(rawExercise);
-          const name = cleanText(exercise.name, 80) || "Não identificado";
+          const detectedName = cleanText(exercise.name, 80) || "Não identificado";
+          const mediaMatch = matchExerciseMedia(detectedName);
+          const name = mediaMatch.canonicalName;
+          const originalName = cleanText(exercise.originalName, 80) || detectedName;
           const sets = nullableNumber(exercise.sets, 20, true);
           const repetitions = cleanText(
             exercise.repetitions ?? exercise.reps,
@@ -105,6 +110,7 @@ export function normalizeWorkoutImport(value: unknown): WorkoutImportAnalysis {
           const needsReview =
             Boolean(exercise.needsReview) ||
             confidence === "low" ||
+            mediaMatch.kind === "ambiguous" ||
             name === "Não identificado" ||
             sets === null ||
             !repetitions;
@@ -123,6 +129,7 @@ export function normalizeWorkoutImport(value: unknown): WorkoutImportAnalysis {
             {
               id: id(),
               name,
+              ...(originalName !== name ? { originalName } : {}),
               sets,
               repetitions,
               weight,
@@ -196,7 +203,7 @@ export function workoutImportToFitness(
     minutes: Math.max(15, Math.min(240, workout.exercises.length * 6)),
     exercises: workout.exercises.map((exercise) => ({
       id: id(),
-      name: exercise.name.trim(),
+      name: canonicalExerciseName(exercise.name.trim()),
       sets: exercise.sets as number,
       reps: exercise.repetitions.trim(),
       ...(exercise.weight === null

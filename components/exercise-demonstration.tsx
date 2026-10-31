@@ -36,7 +36,6 @@ function DemonstrationDialog({ media, onClose }: { media: ExerciseMedia; onClose
               </figure>
             ))}
           </div>
-          <div className={styles.footer}><span>Referência em duas fotografias</span><a href={media.sourceUrl} target="_blank" rel="noopener noreferrer">Fonte das imagens<span className={styles.srOnly}> (abre em nova aba)</span></a></div>
           <button type="button" className={`secondary-button ${styles.returnButton}`} onClick={onClose}>Voltar ao exercício</button>
         </div>
       </section>

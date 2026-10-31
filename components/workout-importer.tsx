@@ -32,6 +32,10 @@ import {
   type WorkoutImportAnalysis,
 } from "@/lib/workout-import";
 import type { Workout } from "@/lib/fitness";
+import { ExerciseDemonstration } from "@/components/exercise-demonstration";
+import { ExerciseNameInput } from "@/components/exercise-name-input";
+import { matchExerciseMedia } from "@/lib/exercise-media";
+import styles from "./workout-importer.module.css";
 
 type Step =
   | "choice"
@@ -51,6 +55,17 @@ type AnalyzeResponse = {
   analysis?: unknown;
   usage?: WorkoutImportAccess;
 };
+
+function ImportExerciseMedia({ exercise }: { exercise: ImportedExercise }) {
+  const match = matchExerciseMedia(exercise.name);
+  return <div className={styles.mediaReview}>
+    {exercise.originalName && exercise.originalName !== exercise.name && <p className={styles.originalName}>Identificado na foto: <strong>{exercise.originalName}</strong></p>}
+    {match.media ? <>
+      <p className={styles.matched}><Images size={16} aria-hidden="true" />Nome do catálogo com demonstração</p>
+      <ExerciseDemonstration name={exercise.name} />
+    </> : <p className={styles.matchHint}>{match.kind === "ambiguous" ? "Confirme a variação do exercício nas sugestões. O nome da foto foi mantido para não trocar a execução." : "Ainda sem demonstração para este nome. O exercício foi mantido; você pode conferir as sugestões."}</p>}
+  </div>;
+}
 
 export function WorkoutImporter({
   availableWorkoutSlots,
@@ -109,7 +124,7 @@ export function WorkoutImporter({
   }, []);
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && step !== "analyzing" && step !== "saving")
+      if (!event.defaultPrevented && event.key === "Escape" && step !== "analyzing" && step !== "saving")
         onClose();
     };
     window.addEventListener("keydown", close);
@@ -303,6 +318,7 @@ export function WorkoutImporter({
               updated.needsReview =
                 !updated.name.trim() ||
                 updated.name === "Não identificado" ||
+                matchExerciseMedia(updated.name).kind === "ambiguous" ||
                 updated.sets === null ||
                 !updated.repetitions.trim();
               return updated;
@@ -635,7 +651,7 @@ export function WorkoutImporter({
         {step === "review" && analysis && (
           <div className="import-body">
             <p className="import-lead">
-              Encontramos estes exercícios. Confira antes de salvar.
+              Os exercícios reconhecidos foram associados aos nomes do catálogo com fotos. Confira as variações, séries e repetições antes de salvar.
             </p>
             {analysis.quality === "low" && (
               <div className="review-alert">
@@ -754,12 +770,11 @@ export function WorkoutImporter({
                         <div className="exercise-review-grid">
                           <label className="wide-field">
                             Exercício
-                            <input
-                              maxLength={80}
-                              value={exercise.name}
-                              onChange={(event) =>
+                            <ExerciseNameInput
+                              value={exercise.name} inlineSuggestions
+                              onChange={(name) =>
                                 setExercise(workout.id, exercise.id, {
-                                  name: event.target.value,
+                                  name,
                                 })
                               }
                             />
@@ -856,6 +871,7 @@ export function WorkoutImporter({
                             />
                           </label>
                         </div>
+                        <ImportExerciseMedia exercise={exercise} />
                       </article>
                     ))}
                   </div>
