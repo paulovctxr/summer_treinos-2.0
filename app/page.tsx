@@ -80,7 +80,7 @@ function newWorkout(): Workout {
     title: "",
     focus: "",
     minutes: 45,
-    exercises: [{ id: crypto.randomUUID(), name: "", sets: 3, reps: "10–12" }],
+    exercises: [{ id: crypto.randomUUID(), name: "", sets: 0, reps: "" }],
   };
 }
 
@@ -1207,7 +1207,7 @@ function Dashboard({ user }: { user: User }) {
                           value={exercise.reps}
                           maxLength={40}
                           required
-                          placeholder="10–12"
+                          placeholder="Informe as repetições"
                           onChange={(e) =>
                             setDraft({
                               ...draft,
@@ -1331,8 +1331,8 @@ function Dashboard({ user }: { user: User }) {
                           {
                             id: crypto.randomUUID(),
                             name: "",
-                            sets: 3,
-                            reps: "10–12",
+                            sets: 0,
+                            reps: "",
                           },
                         ],
                       })

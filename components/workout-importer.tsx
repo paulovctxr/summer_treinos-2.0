@@ -322,8 +322,8 @@ export function WorkoutImporter({
         {
           id: crypto.randomUUID(),
           name: "",
-          sets: 3,
-          repetitions: "10–12",
+          sets: null,
+          repetitions: "",
           weight: null,
           weightUnit: "kg",
           restSeconds: null,
