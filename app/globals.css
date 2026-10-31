@@ -235,7 +235,10 @@ body:has(.import-overlay) { overflow: hidden; }
 .upsell-card .full-button, .success-import .full-button { max-width: 520px; }
 .upsell-card .text-button { margin-top: 17px; }
 .import-message { margin: 0 26px 26px; padding: 12px 14px; border: 1px solid #efb9aa; border-radius: 12px; color: #9d351d; background: #fff1ed; font-size: 13px; line-height: 1.5; }
-.admin-import-config { display: grid; grid-template-columns: minmax(280px, 1fr) 130px 130px auto; gap: 14px; align-items: end; margin: 0 0 24px; padding: 20px; border: 1px solid #e4c341; border-radius: 17px; background: #fff9dd; }
+.admin-import-config { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 190px) auto; gap: 14px; align-items: end; margin: 0 0 24px; padding: 20px; border: 1px solid #e4c341; border-radius: 17px; background: #fff9dd; }
+.admin-import-config > *, .admin-import-copy > div { min-width: 0; }
+.admin-import-config input { width: 100%; min-width: 0; min-height: 46px; font-size: 16px; }
+.admin-import-config button { width: 100%; min-height: 46px; justify-content: center; white-space: nowrap; }
 .admin-import-copy { display: flex; align-items: flex-start; gap: 13px; }
 .admin-import-copy > svg { flex: 0 0 auto; color: #876c00; }
 .admin-import-copy h2 { margin: 0 0 6px; font-size: 17px; }
@@ -248,8 +251,8 @@ body:has(.import-overlay) { overflow: hidden; }
   .photo-grid { grid-template-columns: 1fr 1fr; }
   .exercise-review-grid { grid-template-columns: repeat(3, 1fr); }
   .exercise-review-grid .wide-field { grid-column: 1 / -1; }
-  .admin-import-config { grid-template-columns: 1fr 1fr; }
-  .admin-import-copy, .admin-import-config button { grid-column: 1 / -1; }
+  .admin-import-config { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-import-copy { grid-column: 1 / -1; }
 }
 @media (max-width: 540px) {
   .import-header { padding: 17px 16px; }
@@ -265,7 +268,7 @@ body:has(.import-overlay) { overflow: hidden; }
   .order-actions { width: 100%; margin-left: 0; justify-content: flex-end; }
   .exercise-review-grid { grid-template-columns: 1fr 1fr; }
   .exercise-review-grid .wide-field { grid-column: 1 / -1; }
-  .admin-import-config { grid-template-columns: 1fr; }
+  .admin-import-config { grid-template-columns: minmax(0, 1fr); }
   .admin-import-copy, .admin-import-config button { grid-column: auto; }
 }
 /* Summer Gratis / Summer PRO */
@@ -393,7 +396,6 @@ body:has(.paywall-overlay) { overflow: hidden; }
 .membership-approve-button:disabled, .membership-suspend-button:disabled { opacity: .55; cursor: wait; }
 .admin-actions-divider { width: 100%; display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .admin-actions-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
-.admin-import-config { grid-template-columns: minmax(280px, 1fr) 170px auto; }
 
 @media (max-width: 850px) {
   .pricing-grid { grid-template-columns: 1fr; }
