@@ -1,10 +1,11 @@
 'use client'
 
-import { FormEvent, useRef, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { ArrowRight, CircleCheck, CircleHelp, Dumbbell, Eye, EyeOff, IdCard, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { InstallApp } from '@/components/install-app'
 import styles from './auth-screen.module.css'
+import { REFERRAL_STORAGE_KEY, referralCode } from '@/lib/referrals'
 
 type Mode = 'login' | 'signup' | 'reset'
 export function AuthScreen({ initialMessage = '' }: { initialMessage?: string }) {
@@ -18,7 +19,19 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
   const [loading, setLoading] = useState(false)
   const [visible, setVisible] = useState(false)
   const [capsLock, setCapsLock] = useState(false)
+  const [referral, setReferral] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search)
+    if (search.get('cadastro') === '1') setMode('signup')
+    const query = referralCode(search.get('ref'))
+    let stored: string | null = null
+    try { stored = referralCode(window.localStorage.getItem(REFERRAL_STORAGE_KEY)) } catch {}
+    const next = query || stored
+    if (!next) return
+    setReferral(next)
+    try { window.localStorage.setItem(REFERRAL_STORAGE_KEY, next) } catch {}
+  }, [])
   function switchMode(next: Mode) {
     setMode(next); setMessage(''); setPassword(''); setVisible(false); setCapsLock(false)
     // Announce the new form without opening the mobile keyboard automatically.
@@ -41,7 +54,7 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
       }
       const { data, error } = mode === 'login'
         ? await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
-        : await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: callback, data: { name: name.trim(), matricula: registration } } })
+        : await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: callback, data: { name: name.trim(), matricula: registration, ...(referral ? { referral_code: referral } : {}) } } })
       if (error) {
         setMessage(error.code === 'email_not_confirmed' ? 'Confirme seu e-mail antes de entrar. Confira também a pasta de spam.' : error.code === 'invalid_credentials' ? 'E-mail ou senha incorretos. Você pode recuperar sua senha abaixo.' : error.status === 429 ? 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' : 'Não foi possível concluir. Confira os dados e tente novamente em instantes.')
         return
@@ -49,6 +62,10 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
       if (mode === 'signup' && !data.session) {
         setMessageKind('success')
         setMessage('Confira seu e-mail para confirmar o cadastro. Depois da confirmação, você já poderá entrar normalmente.')
+      }
+      if (data.session && referral) {
+        const attached = await supabase.rpc('summer_attach_referral', { p_code: referral })
+        if (!attached.error) try { window.localStorage.removeItem(REFERRAL_STORAGE_KEY) } catch {}
       }
     } catch { setMessage('Não foi possível conectar ao serviço de acesso. Confira sua conexão e tente novamente.') }
     finally { setLoading(false) }

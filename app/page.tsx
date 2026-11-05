@@ -10,6 +10,8 @@ import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import exerciseDemoStyles from "@/components/exercise-demonstration.module.css";
 import { ExerciseNameInput } from "@/components/exercise-name-input";
 import { ExerciseRepetitionsInput } from "@/components/exercise-repetitions-input";
+import { ProPersonalOffer } from "@/components/pro-personal-offer";
+import { trackProConversionEvent } from "@/lib/pro-conversion-events";
 import { TAB_PATHS, tabFromHash, type AppTab } from "@/lib/navigation";
 import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
 import { useActiveWorkout } from "@/lib/use-active-workout";
@@ -23,6 +25,7 @@ import {
   effectiveExpiresAt,
   effectiveStatus,
   isProAccess,
+  isTrialAccess,
   subscriptionPlanLabel,
   type Access,
 } from "@/lib/plans";
@@ -289,10 +292,39 @@ function Dashboard({ user }: { user: User }) {
   const [dataLoading, setDataLoading] = useState(true);
   const [access, setAccess] = useState<Access | null>(null);
   const paid = isProAccess(access);
+  useEffect(() => {
+    if (!access) return;
+    if (!paid && activeTab === "Início") trackProConversionEvent("offer_viewed", "home");
+    if (!paid && activeTab === "Nutrição") trackProConversionEvent("offer_viewed", "nutrition");
+    if (paid && activeTab === "Nutrição") trackProConversionEvent("pro_feature_opened", "nutrition");
+    if (paid && activeTab === "Progresso") trackProConversionEvent("pro_feature_opened", "progress");
+  }, [Boolean(access), paid, activeTab]);
+  const trialActive = isTrialAccess(access);
+  const trialDaysLeft = trialActive && access?.trial_expires_at
+    ? Math.max(0, Math.ceil((Date.parse(access.trial_expires_at) - Date.parse(access.server_time)) / 86_400_000))
+    : 0;
+  const [trialLoading, setTrialLoading] = useState(false);
   const subscriptionSync = useRef<ReturnType<typeof createSubscriptionSync> | null>(null);
   const refreshAccess = useCallback(async () => {
     await subscriptionSync.current?.refresh();
   }, []);
+  const startProTrial = useCallback(async () => {
+    if (trialLoading || !access?.trial_available) return;
+    setTrialLoading(true);
+    setNotice("");
+    try {
+      const { data, error } = await createClient().rpc("summer_start_pro_trial");
+      if (error || (!data?.started && !data?.trial_active)) throw error || new Error(String(data?.reason || "trial unavailable"));
+      await refreshAccess();
+      setNotice("Seu teste grátis do Summer PRO está liberado por 7 dias. Aproveite todos os recursos agora.");
+      setActiveTab("Nutrição");
+    } catch {
+      setNotice("Não foi possível iniciar o teste grátis agora. Confira sua conexão e tente novamente.");
+      throw new Error("trial unavailable");
+    } finally {
+      setTrialLoading(false);
+    }
+  }, [access?.trial_available, refreshAccess, setActiveTab, trialLoading]);
   useEffect(() => {
     const sync = createSubscriptionSync(async (signal) => {
       const { data, error } = await createClient()
@@ -304,7 +336,9 @@ function Dashboard({ user }: { user: User }) {
       setAccess(next);
       if (isProAccess(next)) setShowPaywall(false);
       if (previous && !isProAccess(previous) && isProAccess(next)) {
-        setNotice("Seu Summer PRO foi liberado! Os recursos já estão disponíveis.");
+        setNotice(next.trial_active
+          ? "Seu teste grátis do Summer PRO começou. Você tem 7 dias para experimentar todos os recursos."
+          : "Seu Summer PRO foi liberado! Os recursos já estão disponíveis.");
       }
     });
     subscriptionSync.current = sync;
@@ -704,7 +738,7 @@ function Dashboard({ user }: { user: User }) {
           <div className="avatar">{initials}</div>
           <div>
             <strong>{displayName}</strong>
-            <small>{paid ? "Summer PRO" : "Summer Grátis"}</small>
+            <small>{trialActive ? "Teste grátis PRO" : paid ? "Summer PRO" : "Summer Grátis"}</small>
           </div>
         </div>
         <nav className="desktop-nav" aria-label="Navegação principal">
@@ -728,7 +762,7 @@ function Dashboard({ user }: { user: User }) {
             </a>
           )}
           <button className="sidebar-plan" onClick={() => setActiveTab("Plano")}>
-            <Crown size={20} /><span><strong>{paid ? "Meu Summer PRO" : "Conheça o Summer PRO"}</strong><small>{paid ? "Plano e renovação" : "Mais cuidado com sua evolução"}</small></span><ChevronRight size={16} />
+            <Crown size={20} /><span><strong>{trialActive ? "Meu teste PRO" : paid ? "Meu Summer PRO" : "Conheça o Summer PRO"}</strong><small>{trialActive ? "Assine para continuar depois do teste" : paid ? "Plano e renovação" : "Mais cuidado com sua evolução"}</small></span><ChevronRight size={16} />
           </button>
           <button className="help-link" onClick={() => setShowHelp(!showHelp)}>
             <CircleHelp size={17} />
@@ -752,7 +786,7 @@ function Dashboard({ user }: { user: User }) {
             <span className="header-current-tab">{activeTab === "Plano" ? "Planos" : activeTab}</span>
           </div>
           <div className="topbar-actions">
-            <button className="account-plan-badge" onClick={() => setActiveTab("Plano")}><Crown size={14} />{paid ? "PRO" : "Grátis"}</button>
+            <button className="account-plan-badge" onClick={() => setActiveTab("Plano")}><Crown size={14} />{trialActive ? "Teste PRO" : paid ? "PRO" : "Grátis"}</button>
             <button
               className="icon-button"
               onClick={() => setShowHelp(!showHelp)}
@@ -797,6 +831,10 @@ function Dashboard({ user }: { user: User }) {
             </button>
           </div>}
           {!online && <p className="notice" role="alert">Você está sem internet. As alterações precisam de conexão para serem salvas.</p>}
+          {trialActive && <section className="pro-trial-banner" aria-label="Teste grátis Summer PRO">
+            <div><Crown size={18} aria-hidden="true" /><span><strong>Teste grátis PRO ativo</strong><small>{trialDaysLeft > 0 ? `${trialDaysLeft} ${trialDaysLeft === 1 ? "dia restante" : "dias restantes"}` : "Termina hoje"}. O acesso volta automaticamente ao plano grátis no vencimento.</small></span></div>
+            <button type="button" className="secondary-button" onClick={() => setActiveTab("Plano")}>ASSINAR E CONTINUAR</button>
+          </section>}
           <div aria-live="polite" aria-atomic="true">
             {notice && (
               <div className="notice">
@@ -1050,25 +1088,13 @@ function Dashboard({ user }: { user: User }) {
                   </button>
                 </section>
               ) : (
-                <section className="nutrition-home-card locked-home-card">
-                  <div className="nutrition-home-icon locked">
-                    <LockKeyhole size={23} />
-                  </div>
-                  <div>
-                    <p className="eyebrow">NUTRIÇÃO IA</p>
-                    <h3>Cardápio, registro por foto e diário alimentar</h3>
-                    <p>
-                      Organize sua alimentação e acompanhe calorias e
-                      macronutrientes de forma simples.
-                    </p>
-                  </div>
-                  <button
-                    className="primary-button"
-                    onClick={() => setShowPaywall(true)}
-                  >
-                    CONHECER SUMMER PRO
-                  </button>
-                </section>
+                <ProPersonalOffer
+                  fitness={fitness}
+                  trialEligible={Boolean(access?.trial_available)}
+                  trialLoading={trialLoading}
+                  onStartTrial={() => { void startProTrial().catch(() => {}); }}
+                  onOpenPlans={() => setActiveTab("Plano")}
+                />
               )}
               <div className="section-heading">
                 <div>
@@ -1511,7 +1537,14 @@ function Dashboard({ user }: { user: User }) {
             </section>
           )}
           {activeTab === "Plano" && (
-            <PlanPanel access={access} onOpenNutrition={() => setActiveTab("Nutrição")} />
+            <PlanPanel
+              access={access}
+              userEmail={user.email || ""}
+              trialLoading={trialLoading}
+              onStartTrial={startProTrial}
+              onRefreshAccess={refreshAccess}
+              onOpenNutrition={() => setActiveTab("Nutrição")}
+            />
           )}
           {paid && (nutritionVisited || activeTab === "Nutrição") && <div hidden={activeTab !== "Nutrição"}>
             <ProWorkspace onRefresh={refreshAccess} userId={user.id} active={activeTab === "Nutrição"} />
@@ -1541,16 +1574,16 @@ function Dashboard({ user }: { user: User }) {
                 </div>
                 <div>
                   <span>Plano atual</span>
-                  <strong>{paid ? "⭐ Summer PRO" : "Summer Grátis"}</strong>
+                  <strong>{trialActive ? "⭐ Teste grátis Summer PRO" : paid ? "⭐ Summer PRO" : "Summer Grátis"}</strong>
                   {paid ? (
                     <small>
-                      {subscriptionPlanLabel(access?.subscription_plan)} · início{" "}
-                      {access?.subscription_started_at
+                      {trialActive ? "Todos os recursos liberados" : subscriptionPlanLabel(access?.subscription_plan)} · início{" "}
+                      {(trialActive ? access?.trial_started_at : access?.subscription_started_at)
                         ? new Date(
-                            access.subscription_started_at,
+                            (trialActive ? access?.trial_started_at : access?.subscription_started_at) as string,
                           ).toLocaleDateString("pt-BR")
                         : "—"}
-                      {" · "}renovação/vencimento{" "}
+                      {" · "}{trialActive ? "termina" : "renovação/vencimento"}{" "}
                       {effectiveExpiresAt(access)
                         ? new Date(
                             effectiveExpiresAt(access) as string,
@@ -1572,7 +1605,7 @@ function Dashboard({ user }: { user: User }) {
                   onClick={() => setActiveTab("Plano")}
                   type="button"
                 >
-                  {paid ? "VER ASSINATURA" : "CONHECER SUMMER PRO"}
+                  {trialActive ? "ASSINAR PARA CONTINUAR" : paid ? "VER ASSINATURA" : "CONHECER SUMMER PRO"}
                 </button>
               </section>
               <form
@@ -1668,6 +1701,12 @@ function Dashboard({ user }: { user: User }) {
       {showPaywall && (
         <ProPaywall
           onClose={() => setShowPaywall(false)}
+          trial={{
+            eligible: Boolean(access?.trial_available),
+            active: trialActive,
+            expiresAt: access?.trial_expires_at,
+          }}
+          onStartTrial={startProTrial}
           onSubscribe={() => {
             setShowPaywall(false);
             setActiveTab("Plano");

@@ -15,6 +15,12 @@ html { scroll-padding-block: 24px 110px; }
 .text-button { padding-block: 10px; }
 button:disabled { cursor: not-allowed; }
 .icon-button:disabled { opacity: .4; }
+.pro-trial-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 0 18px; padding: 14px 16px; border: 1px solid #e1bd00; border-radius: 14px; background: #fff7c7; }
+.pro-trial-banner > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pro-trial-banner svg { flex-shrink: 0; color: var(--brand-red); }
+.pro-trial-banner span { display: grid; gap: 3px; min-width: 0; }
+.pro-trial-banner small { color: var(--muted); line-height: 1.45; }
+.pro-trial-banner button { flex-shrink: 0; }
 
 .workout-fieldset {
   display: grid;
@@ -120,6 +126,8 @@ button:disabled { cursor: not-allowed; }
   .food-log-grid input, .food-log-grid select, .rest-timer select { font-size: 16px; }
 }
 @media (max-width: 600px) {
+  .pro-trial-banner { align-items: stretch; flex-direction: column; }
+  .pro-trial-banner button { width: 100%; justify-content: center; }
   .workout-form .exercise-editor { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; }
   .workout-form .exercise-name { grid-column: 1 / -1; }
   .workout-form .exercise-extra { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -54,7 +54,7 @@ Abra o endereço exibido no terminal, normalmente `http://localhost:3000`. Os co
 
 ## Limites de escopo
 
-Aplicação web para desktop e celular, com manifesto de instalação. Não equivale a uma publicação nativa na App Store. O funcionamento requer internet; pagamentos PIX são conferidos manualmente pelo administrador.
+Aplicação web para desktop e celular, com manifesto de instalação. Não equivale a uma publicação nativa na App Store. O funcionamento requer internet; o Mercado Pago pode confirmar o Summer PRO automaticamente e o PIX manual permanece como alternativa.
 
 ---
 
@@ -74,7 +74,7 @@ Aplicativo Next.js com autenticação Supabase, fichas pessoais persistentes, re
 - `/admin`: painel exclusivo do proprietário, alunos paginados, pesquisa por nome/e-mail/matrícula disponível, filtros por situação e alertas de vencimento em sete dias.
 - Summer Grátis (R$ 0): cadastro, treinos manuais, digitalização da ficha por foto, cargas, cronômetro e histórico básico.
 - Summer PRO: promoção de lançamento de R$ 10,00 no primeiro mês; depois R$ 14,90/mês ou R$ 119,90/ano, com economia de R$ 58,90 no anual. Os preços ficam centralizados em `summer_private.plan_config`.
-- O pagamento continua sendo manual via PIX. A pessoa solicita a assinatura, envia o comprovante e somente o administrador aprova no painel. O Summer PRO usa os status `free`, `pro`, `expired` e `cancelled`, com periodicidade mensal ou anual.
+- O pagamento do Summer PRO pode abrir o Checkout Pro do Mercado Pago e liberar o acesso automaticamente após a aprovação. O fluxo manual via PIX permanece disponível como alternativa administrativa. O Summer PRO usa os status `free`, `pro`, `expired` e `cancelled`, com periodicidade mensal ou anual.
 - A digitalização por foto permanece disponível no Summer Grátis. Para proteger o custo da IA, a cota mensal é configurável no painel e vale para todas as contas; repetir uma análise que falhou não é contado como conclusão.
 - Espaço Summer PRO funcional: perfil nutricional, metas de calorias e macros, controle de água, cardápio personalizado de sete dias por IA e lista de compras automática.
 - Evolução PRO com histórico completo, estatísticas, gráfico de cargas e recordes pessoais calculados a partir dos treinos concluídos.
@@ -100,9 +100,19 @@ O segredo fica disponível imediatamente, sem novo deploy. A mesma `OPENAI_API_K
 
 A migração deve estar aplicada antes de disponibilizar esta versão a alunos. Sem ela, os dados não são inventados e operações falham de forma fechada. Os cadastros apresentados no painel são as contas desse projeto Supabase; uma matrícula ausente é exibida como “Não informada”. Não são importados automaticamente alunos de outro banco ou do APK antigo.
 
-## Planos e Pix
+## Pagamentos: Mercado Pago e Pix
 
-A chave Pix é a já fornecida pelo proprietário. Não há cobrança automática nem verificação bancária. O administrador confere o pagamento antes de aprovar a solicitação. Os prazos são calculados no servidor: um mês para o plano mensal e um ano para o anual. Cancelar encerra o acesso imediatamente, sem apagar o histórico. A confirmação nunca depende de uma informação enviada pelo frontend.
+Para atualizar o banco existente do Summer, execute o arquivo [`docs/summer-pro-ativacao.sql`](docs/summer-pro-ativacao.sql) inteiro no SQL Editor do projeto `ntqcvzemkpmpnomdbnen`. Ele reúne as cinco novas migrações em uma transação (teste grátis, Mercado Pago, métricas, convites e depoimentos), preserva as fichas e solicita a atualização do cache da API. O arquivo é validado pelos testes em PostgreSQL local. A chave `service_role` usada pela API REST não permite instalar migrações; esta etapa requer SQL Editor ou acesso administrativo de migração. Aplique o script antes de disponibilizar o novo checkout aos alunos.
+
+O teste é único por conta, dura sete dias pelo relógio do servidor e termina sem cobrança. Inclui uma geração de cardápio durante o período. A assinatura paga permanece separada do teste. Os convites `/convite/recepcao` e `/convite/avaliacao` têm QR Code; os depoimentos precisam ser cadastrados e publicados pelo administrador com autorização registrada. Nenhum depoimento é pré-preenchido.
+
+O Checkout Pro usa o preço guardado em `summer_private.plan_config`; valores enviados pelo navegador são ignorados. O servidor cria uma preferência vinculada a um checkout interno. No webhook, consulta o pagamento diretamente na API do Mercado Pago, confere o identificador, o status aprovado, o valor exato e a moeda BRL, e só então libera ou estende a assinatura. Notificações repetidas são idempotentes. Os prazos são calculados no banco: um mês para o plano mensal e um ano para o anual.
+
+Depois de aplicar `supabase/migrations/20261101090000_summer_mercado_pago.sql`, configure na Vercel as variáveis `NEXT_PUBLIC_SITE_URL`, `MERCADO_PAGO_ACCESS_TOKEN` e `SUPABASE_SERVICE_ROLE_KEY`. Cadastre a URL `https://SEU_DOMINIO/api/mercado-pago/webhook` na aplicação do Mercado Pago; se a plataforma fornecer uma assinatura secreta, salve-a como `MERCADO_PAGO_WEBHOOK_SECRET`. O token e a chave `service_role` são exclusivos do servidor e nunca podem receber o prefixo `NEXT_PUBLIC_`.
+
+O endpoint autenticado `POST /api/mercado-pago/checkout` recebe `{"plan":"monthly"}` ou `{"plan":"annual"}` e devolve `{"checkoutUrl":"https://...mercadopago.com..."}`. O navegador redireciona para essa URL. O endpoint `POST /api/mercado-pago/webhook` é chamado pelo Mercado Pago e não deve ser usado pelo cliente. Se os segredos ainda não estiverem configurados, o checkout falha de forma fechada e o fluxo manual via Pix pode continuar sendo usado.
+
+A chave Pix é a já fornecida pelo proprietário. Nesse fluxo alternativo, o administrador confere o pagamento antes de aprovar a solicitação. Cancelar encerra o acesso imediatamente, sem apagar o histórico. Nenhuma confirmação depende de preço ou status enviado pelo frontend.
 
 Os dados sensíveis são protegidos por RLS e permissões SQL. Alunos só acessam seus próprios treinos e registros. Alterações de planos usam funções que verificam a administração no banco, com auditoria em `summer_private.plan_audit`. O acesso pago é verificado a cada consulta ao banco, mesmo que a interface ainda mostre um status antigo.
 

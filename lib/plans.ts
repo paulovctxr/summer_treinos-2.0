@@ -1,13 +1,20 @@
 export type SubscriptionStatus = "free" | "pro" | "expired" | "cancelled";
 export type SubscriptionPlan = "monthly" | "annual";
+export type AccessKind = "admin" | "paid" | "trial" | "free";
 
 export type Access = {
   is_admin: boolean;
+  access_kind?: AccessKind;
   subscription_status?: SubscriptionStatus;
   subscription_plan?: SubscriptionPlan | null;
   subscription_started_at?: string | null;
   subscription_expires_at?: string | null;
   subscription_updated_at?: string | null;
+  trial_available?: boolean;
+  trial_used?: boolean;
+  trial_active?: boolean;
+  trial_started_at?: string | null;
+  trial_expires_at?: string | null;
   // Compatibility with the client that was published before this migration.
   plan: "basic" | "premium" | "plus";
   expires_at: string | null;
@@ -80,7 +87,10 @@ export function isProAccess(access: Access | null | undefined) {
   if (!access) return false;
   // The verified owner can test and administer every PRO feature without
   // needing a separate paid subscription. The database enforces the same rule.
-  if (access.is_admin) return true;
+  if (access.is_admin || access.access_kind === "admin") return true;
+  if (access.access_kind)
+    return access.access_kind === "paid" || access.access_kind === "trial";
+  if (access.trial_active) return true;
   if (access.subscription_status)
     return access.subscription_status === "pro";
   return access.plan === "premium" || access.plan === "plus";
@@ -95,7 +105,19 @@ export function effectiveStatus(
 }
 
 export function effectiveExpiresAt(access: Access | null | undefined) {
-  return access?.subscription_expires_at || access?.expires_at || null;
+  if (!access) return null;
+  const trial = access.access_kind
+    ? access.access_kind === "trial"
+    : access.trial_active;
+  if (trial)
+    return access.trial_expires_at || access.expires_at || null;
+  return access.subscription_expires_at || access.expires_at || null;
+}
+
+export function isTrialAccess(access: Access | null | undefined) {
+  if (!access || access.is_admin) return false;
+  if (access.access_kind) return access.access_kind === "trial";
+  return Boolean(access.trial_active);
 }
 
 export function monthlyPrice(config: PlanConfig) {

@@ -1,0 +1,29 @@
+.offer { min-width: 0; margin: 24px 0; padding: 24px; overflow: hidden; border: 1px solid #e6ce51; border-radius: 20px; background: linear-gradient(135deg, #fffdf3 0%, #fff6bd 100%); box-shadow: 0 12px 36px #6d57000d; }
+.heading { display: flex; align-items: flex-start; gap: 14px; }
+.icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border-radius: 14px; color: #fff; background: #c90f1c; }
+.eyebrow { margin: 0 0 6px; color: #a60e17; font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+.heading h3 { margin: 0; color: #171717; font-size: clamp(21px, 3vw, 27px); line-height: 1.2; letter-spacing: -.4px; }
+.heading p:last-child { max-width: 750px; margin: 8px 0 0; color: #5e5e58; font-size: 14px; line-height: 1.65; }
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.metrics > div { display: grid; gap: 4px; min-width: 0; padding: 14px; border: 1px solid #eadb91; border-radius: 12px; background: #ffffffc9; }
+.metrics strong { color: #171717; font-size: 20px; overflow-wrap: anywhere; }
+.metrics span { color: #69695f; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.outcomes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.outcomes p { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 14px; border-radius: 12px; color: #606059; background: #fff; font-size: 12px; line-height: 1.55; }
+.outcomes svg { flex-shrink: 0; margin-top: 2px; color: #b70d17; }
+.outcomes span { display: grid; gap: 3px; min-width: 0; }
+.outcomes strong { color: #262622; font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
+.actions :global(.primary-button) { min-height: 48px; }
+.offer > small { display: block; margin-top: 10px; color: #68685f; font-size: 11px; line-height: 1.5; }
+@media (max-width: 620px) {
+  .offer { padding: 18px; }
+  .heading { align-items: center; }
+  .metrics { grid-template-columns: minmax(0, 1fr); }
+  .outcomes { grid-template-columns: minmax(0, 1fr); }
+  .actions > button { width: 100%; justify-content: center; }
+}
+@media (max-width: 370px) {
+  .heading { align-items: flex-start; }
+  .icon { width: 40px; height: 40px; flex-basis: 40px; }
+}

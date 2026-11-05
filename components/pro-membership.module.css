@@ -14,6 +14,24 @@
 .loading svg { flex-shrink: 0; }
 .loadError { display: grid; justify-items: start; gap: 10px; padding: 24px; border: 1px solid #f0c3c6; border-radius: 16px; background: #fff5f5; }
 .loadError p { margin: 0; color: var(--muted); line-height: 1.6; }
+.trialOffer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; margin: 20px 0; padding: 20px; border: 1px solid #e4c341; border-radius: 18px; background: linear-gradient(135deg, #fffdf4, #fff4b8); }
+.trialOffer h3 { margin: 3px 0 6px; font-size: 20px; }
+.trialOffer p:not(:global(.eyebrow)) { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.trialIcon { display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px; border-radius: 14px; color: #fff; background: #c90f1c; }
+.outcomeLead { margin: 4px 0 0; color: #f0e9d1; font-size: 13px; line-height: 1.6; }
+.automaticPayment { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 15px; margin-top: 18px; padding: 18px; border: 1px solid #d6c45d; border-radius: 15px; background: #fff; }
+.automaticPayment strong { display: block; font-size: 15px; }
+.automaticPayment p { margin: 5px 0 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.paymentIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; color: #8a070f; background: #fff0f1; }
+.paymentTrust { display: flex; flex-wrap: wrap; gap: 7px 14px; color: #5e644f; font-size: 10px; font-weight: 700; }
+.paymentTrust span { display: inline-flex; align-items: center; gap: 5px; }
+.paymentTrust svg { color: #568228; }
+.manualToggle { margin-top: 12px; justify-content: center; }
+.manualPayment { margin-top: 16px; padding-top: 18px; border-top: 1px solid #ddcf83; }
+.manualPayment > small { display: block; margin-top: 13px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.manualHeading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.manualHeading h4 { margin: 4px 0 0; font-size: 18px; }
+.manualHeading > strong { white-space: nowrap; font-size: 20px; }
 .paymentSteps { display: grid; gap: 14px; list-style: none; margin: 22px 0; padding: 0; }
 .paymentSteps li { display: flex; align-items: flex-start; gap: 12px; }
 .paymentSteps li > span { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; background: #ffd600; color: #171717; font-size: 12px; font-weight: 800; }
@@ -23,6 +41,10 @@
 .pixKey { display: block; width: 100%; min-width: 0; min-height: 48px; margin: 8px 0 12px; padding: 12px; border: 1px dashed #bba72d; border-radius: 10px; background: #fff; color: #171717; font: 13px/1.5 ui-monospace, monospace; }
 .paywall { overscroll-behavior: contain; }
 .paywallNote { max-width: 440px; margin: 16px auto; color: #eee5c7; font-size: 13px; line-height: 1.65; }
+.paywallLead { max-width: 470px; margin: -10px auto 20px; color: #eee5c7; font-size: 13px; line-height: 1.6; }
+.trialButton { margin-top: 4px; }
+.plansButton { margin-top: 10px; color: #fff; border-color: #6d5a27; background: #2d2512; }
+.trialError { margin: 10px auto 0; color: #ffd2d5; font-size: 12px; line-height: 1.5; }
 .paywall :global(.paywall-benefits) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .paywall :global(.paywall-benefits) > div { min-width: 0; line-height: 1.5; }
 .paywall :global(.paywall-benefits) > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
@@ -64,6 +86,8 @@
   .progress :global(.pro-progress-heading) { align-items: flex-start; flex-direction: column; }
   .progress :global(.load-progress-card) select, .pixKey { font-size: 16px; }
   .membership :global(.subscription-tools-link) { align-items: stretch; flex-direction: column; }
+  .trialOffer, .automaticPayment { grid-template-columns: auto minmax(0, 1fr); align-items: flex-start; }
+  .trialOffer > button, .automaticPayment > button { grid-column: 1 / -1; width: 100%; justify-content: center; }
 }
 @media (max-width: 540px) {
   .membership :global(.pix-checkout) > button, .membership :global(.pix-whatsapp-button) { width: 100%; justify-content: center; }
@@ -71,4 +95,9 @@
   .paywall { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
   .paywall :global(.paywall-benefits) { grid-template-columns: minmax(0, 1fr); }
   .paywall :global(.paywall-benefits) > div:last-child:nth-child(odd) { grid-column: auto; }
+  .trialOffer { grid-template-columns: minmax(0, 1fr); }
+  .trialIcon { width: 42px; height: 42px; }
+  .automaticPayment { grid-template-columns: minmax(0, 1fr); }
+  .paymentIcon { width: 40px; height: 40px; }
+  .manualHeading { align-items: flex-start; flex-direction: column; }
 }

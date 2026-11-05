@@ -15,6 +15,8 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AdminProFunnel } from "@/components/admin-pro-funnel";
+import { AdminTestimonials } from "@/components/admin-testimonials";
 import {
   DEFAULT_PLAN_CONFIG,
   formatBRL,
@@ -331,6 +333,8 @@ export function AdminPanel() {
             <strong>{summary ? summary.members_suspended + summary.members_inactive : "—"}</strong>
           </article>
         </div>
+        <AdminProFunnel />
+        <AdminTestimonials />
         {importConfig && (
           <form className="admin-import-config" onSubmit={saveImportConfig}>
             <div className="admin-import-copy">

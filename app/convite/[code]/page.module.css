@@ -1,0 +1,23 @@
+.page { min-height: 100dvh; display: grid; place-items: center; padding: 32px 18px; background: radial-gradient(circle at 50% 0%, #ffe768 0, transparent 34%), #f7f7f3; }
+.card { width: min(100%, 880px); overflow: hidden; border: 1px solid #dfded6; border-radius: 28px; background: #fff; box-shadow: 0 22px 70px #1112; }
+.top { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr); gap: 28px; padding: 34px; border-top: 8px solid #ffd600; }
+.brand { width: min(100%, 250px); height: auto; object-fit: contain; }
+.eyebrow { margin: 28px 0 8px; color: #bf101a; font-size: 12px; font-weight: 850; letter-spacing: .08em; }
+.copy h1 { margin: 0; max-width: 620px; font-size: clamp(32px, 6vw, 58px); line-height: 1.02; letter-spacing: -.055em; }
+.lead { margin: 18px 0 0; max-width: 620px; color: #60605b; font-size: 17px; line-height: 1.65; }
+.benefits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 24px 0; }
+.benefits span { padding: 12px 14px; border-radius: 12px; background: #fff7c7; color: #292410; font-size: 13px; font-weight: 700; line-height: 1.45; }
+.fine { color: #73736c; font-size: 12px; line-height: 1.55; }
+.qrPanel { align-self: center; display: grid; justify-items: center; padding: 22px; border: 1px solid #e1d37b; border-radius: 20px; background: #fffbea; text-align: center; }
+.qrPanel img { display: block; width: min(100%, 280px); height: auto; border-radius: 12px; }
+.qrPanel strong { margin-top: 14px; font-size: 16px; }
+.qrPanel small { margin-top: 5px; color: #666; line-height: 1.45; overflow-wrap: anywhere; }
+.invalid { width: min(100%, 560px); padding: 32px; border-radius: 22px; background: #fff; text-align: center; box-shadow: 0 18px 60px #1112; }
+.invalid img { width: min(100%, 240px); }
+.invalid h1 { margin-bottom: 8px; }
+.invalid p { color: #666; line-height: 1.6; }
+.invalid a { display: inline-flex; margin-top: 12px; }
+.card :global(.invite-actions) { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px 34px 34px; }
+.card :global(.invite-actions > *) { justify-content: center; }
+@media (max-width: 720px) { .top { grid-template-columns: minmax(0, 1fr); padding: 24px; } .qrPanel { order: -1; } .qrPanel img { width: 220px; } .copy h1 { font-size: 38px; } .benefits { grid-template-columns: minmax(0, 1fr); } .card :global(.invite-actions) { padding: 0 24px 24px; } .card :global(.invite-actions > *) { width: 100%; } }
+@media print { .page { min-height: auto; padding: 0; background: #fff; } .card { box-shadow: none; } .card :global(.invite-actions) { display: none; } .top { min-height: 100vh; align-content: center; } }
