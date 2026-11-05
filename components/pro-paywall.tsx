@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { trackProConversionEvent } from "@/lib/pro-conversion-events";
 import { useModalDialog } from "@/lib/use-modal-dialog";
+import { createClient } from "@/lib/supabase/client";
 
 import {
   BarChart3,
@@ -13,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  DEFAULT_PLAN_CONFIG,
   formatBRL,
   monthlyPrice,
   type PlanConfig,
@@ -37,7 +37,7 @@ export function ProPaywall({
   onSubscribe,
   trial,
   onStartTrial,
-  config = DEFAULT_PLAN_CONFIG,
+  config: suppliedConfig,
 }: {
   onClose: () => void;
   onSubscribe: () => void;
@@ -46,6 +46,19 @@ export function ProPaywall({
   config?: PlanConfig;
 }) {
   const dialog = useModalDialog(onClose);
+  const [loadedConfig, setLoadedConfig] = useState<PlanConfig | null>(null);
+  const config = suppliedConfig || loadedConfig;
+  useEffect(() => {
+    if (suppliedConfig) return;
+    let active = true;
+    void (async () => {
+      try {
+        const { data, error } = await createClient().rpc("summer_get_plan_config");
+        if (active && !error && data) setLoadedConfig(data as PlanConfig);
+      } catch { /* The plans screen can retry loading verified prices. */ }
+    })();
+    return () => { active = false; };
+  }, [suppliedConfig]);
   useEffect(() => { trackProConversionEvent("offer_viewed", "paywall"); }, []);
   const [startingTrial, setStartingTrial] = useState(false);
   const [trialError, setTrialError] = useState("");
@@ -93,11 +106,11 @@ export function ProPaywall({
             </div>
           ))}
         </div>
-        <div className="paywall-price">
+        {config && <div className="paywall-price">
           <strong>{formatBRL(monthlyPrice(config))}{config.promotion_active ? " no 1º mês" : "/mês"}</strong>
           {config.promotion_active && <span>Depois, {formatBRL(config.pro_monthly_price_cents)}/mês</span>}
           <span>Plano anual equivale a {formatBRL(annualMonthlyEquivalent(config.pro_annual_price_cents))}/mês</span>
-        </div>
+        </div>}
         <p id="paywall-payment-note" className={styles.paywallNote}>Pagamento pelo Mercado Pago com liberação após aprovação, ou PIX com conferência manual. Não há renovação automática.</p>
         {canStartTrial && <button className={`primary-button full-button ${styles.trialButton}`} disabled={startingTrial} onClick={() => void startTrial()}>
           <Crown size={17} />

@@ -149,9 +149,15 @@ test('database checkout uses server price and payment confirmation is atomic and
   const scalar = async sql => Object.values((await db.query(sql)).rows[0])[0]
 
   await asRole('authenticated', alice)
+  assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, true)
+  await scalar('select public.summer_start_pro_trial()')
+  assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, true,
+    'A free trial does not consume the first paid month')
   const checkout = await scalar("select public.summer_create_mercado_pago_checkout('monthly')")
   assert.equal(checkout.amount_cents, 1_000)
   assert.equal(checkout.currency, 'BRL')
+  assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, true,
+    'An unpaid checkout does not consume the discount')
   await scalar(`select public.summer_attach_mercado_pago_preference('${checkout.checkout_id}', 'preference-1')`)
   await assert.rejects(
     () => db.query(`select public.summer_confirm_mercado_pago_payment('${checkout.checkout_id}','123456789',1000,'BRL','approved')`),
@@ -167,6 +173,11 @@ test('database checkout uses server price and payment confirmation is atomic and
   assert.equal(duplicate.subscription_expires_at, confirmed.subscription_expires_at)
 
   await asRole('authenticated', alice)
+  assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, false)
+  assert.equal((await scalar("select public.summer_create_mercado_pago_checkout('monthly')")).amount_cents, 1490,
+    'Mercado Pago renewals use the regular monthly price')
+  assert.equal((await scalar("select public.summer_request_subscription('monthly')")).amount_cents, 1490,
+    'Switching from Mercado Pago to manual PIX does not reset the promotion')
   const renewal = await scalar("select public.summer_create_mercado_pago_checkout('annual')")
   await scalar(`select public.summer_attach_mercado_pago_preference('${renewal.checkout_id}', 'preference-2')`)
   await asRole('service_role')
@@ -182,5 +193,12 @@ test('database checkout uses server price and payment confirmation is atomic and
   const access = await scalar('select public.summer_get_access()')
   assert.equal(access.subscription_status, 'pro')
   assert.equal(access.subscription_plan, 'annual')
+  for (const status of ['expired', 'cancelled']) {
+    await db.exec(`reset role; update public.summer_subscriptions set subscription_status='${status}', subscription_expires_at=now()-interval '1 day' where user_id='${alice}'`)
+    await asRole('authenticated', alice)
+    assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, false)
+    assert.equal((await scalar("select public.summer_create_mercado_pago_checkout('monthly')")).amount_cents, 1490,
+      `A ${status} subscription does not restore the first-month promotion`)
+  }
   await db.close()
 })

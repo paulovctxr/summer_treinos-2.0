@@ -110,6 +110,30 @@ test('real Postgres permissions, subscriptions, PIX review and data isolation', 
     assert.equal(access.subscription_status, 'pro')
     assert.equal(access.subscription_plan, 'monthly')
     assert.equal(access.plan, 'plus')
+    assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, false)
+    assert.equal((await scalar("select public.summer_request_subscription('monthly')")).amount_cents, 1490)
+    assert.equal((await scalar("select public.summer_create_mercado_pago_checkout('monthly')")).amount_cents, 1490,
+      'An approved manual PIX also consumes the introductory offer for Mercado Pago')
+  })
+
+  await t.test('unpaid PIX quotes retain their price and global promotion controls still apply', async () => {
+    await asUser(bob)
+    const quote = await scalar("select public.summer_request_subscription('monthly')")
+    assert.equal(quote.amount_cents, 1000)
+    assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, true)
+    await db.exec('reset role; update summer_private.plan_config set promotion_active=false where singleton')
+    await asUser(bob)
+    assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, false)
+    const repeated = await scalar("select public.summer_request_subscription('monthly')")
+    assert.equal(repeated.request_id, quote.request_id)
+    assert.equal(repeated.amount_cents, quote.amount_cents, 'Honor the saved PIX amount, not a recalculated quote')
+    assert.equal((await scalar("select public.summer_create_mercado_pago_checkout('monthly')")).amount_cents, 1490)
+    await db.exec('reset role; update summer_private.plan_config set promotion_active=true where singleton')
+    await asUser(admin)
+    await scalar(`select public.summer_admin_review_subscription_request(${quote.request_id}, 'rejected')`)
+    await asUser(bob)
+    assert.equal((await scalar('select public.summer_get_plan_config()')).promotion_active, true,
+      'Rejected requests do not consume the introductory offer')
   })
 
   await t.test('nutrition AI data and the exercise library are enforced as PRO on the database', async () => {
