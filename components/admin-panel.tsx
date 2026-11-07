@@ -17,6 +17,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { AdminProFunnel } from "@/components/admin-pro-funnel";
 import { AdminTestimonials } from "@/components/admin-testimonials";
+import { AdminAssessmentAccount } from "@/components/admin-assessment-account";
 import studentStyles from "./admin-students.module.css";
 import {
   DEFAULT_PLAN_CONFIG,
@@ -336,6 +337,7 @@ export function AdminPanel() {
         </div>
         <AdminProFunnel />
         <AdminTestimonials />
+        <AdminAssessmentAccount />
         {importConfig && (
           <form className="admin-import-config" onSubmit={saveImportConfig}>
             <div className="admin-import-copy">

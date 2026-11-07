@@ -1,0 +1,80 @@
+.shell { max-width: 1120px; margin: 0 auto; padding: 24px; color: var(--ink, #222); min-width: 0; }
+.shell *, .card * { box-sizing: border-box; }
+.top, .heading, .toolbar, .bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.top { margin-bottom: 34px; }
+.top a { color: inherit; font-weight: 700; text-decoration: none; }
+.heading { margin-bottom: 24px; }
+.heading h1 { margin: 6px 0 10px; font-size: clamp(28px, 5vw, 38px); letter-spacing: -1px; }
+.heading p, .card p { line-height: 1.6; }
+.eyebrow { font-size: 11px; letter-spacing: 1.6px; font-weight: 800; color: #8f321c; }
+.primary, .secondary { border-radius: 12px; min-height: 46px; padding: 12px 18px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; display: inline-flex; align-items: center; justify-content: center; overflow-wrap: anywhere; }
+.primary { border: 1px solid #bd1425; background: #bd1425; color: white; }
+.secondary { border: 1px solid #d8d8cf; background: white; color: #292922; }
+.shell button:disabled, .card button:disabled { opacity: .55; cursor: wait; }
+.shell button:focus-visible, .shell a:focus-visible, .shell summary:focus-visible, .card button:focus-visible { outline: 3px solid #bd1425; outline-offset: 3px; }
+.card, .login, .formCard, .report, .empty { background: white; border: 1px solid #e2e2da; border-radius: 18px; padding: 24px; min-width: 0; }
+.card { margin: 20px 0; }
+.card summary { padding: 16px 0; cursor: pointer; font-weight: 700; }
+.card h2 { margin-top: 0; }
+.login { max-width: 480px; margin: 6vh auto; display: grid; gap: 16px; }
+.login img { max-width: 100%; height: auto; }
+.login h1, .login p { margin: 0; }
+.fields { display: grid; gap: 16px; }
+.grid, .values { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
+.grid label, .fields label, .search label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; min-width: 0; }
+.grid input, .grid textarea, .grid select, .fields input, .search input { width: 100%; min-width: 0; max-width: 100%; min-height: 46px; border: 1px solid #d4d4cc; border-radius: 10px; background: #fffef9; padding: 11px 12px; font: inherit; font-size: 16px; color: #202020; }
+.grid input:focus, .grid textarea:focus, .fields input:focus, .search input:focus { outline: 2px solid #bd1425; outline-offset: 1px; }
+.grid input[readonly] { background: #f2f2ed; }
+.grid textarea { resize: vertical; }
+.wide { grid-column: 1 / -1; }
+.search { display: flex; align-items: flex-end; gap: 12px; margin: 20px 0; }
+.search label { flex: 1; }
+.search button { flex-shrink: 0; }
+.list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.listCard { text-align: left; background: white; border: 1px solid #deded5; border-radius: 16px; padding: 22px; cursor: pointer; color: inherit; min-width: 0; overflow-wrap: anywhere; }
+.listCard h2 { font-size: 19px; margin: 16px 0 8px; }
+.listCard p { color: #66665e; line-height: 1.6; }
+.listCard > span:last-child { font-weight: 700; }
+.badge { display: inline-block; padding: 6px 10px; background: #fff4ba; color: #66520a; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.toolbar { justify-content: flex-start; margin: 20px 0; }
+.saveStatus { font-size: 13px; color: #615f53; }
+.notice { background: #fff3d6; border: 1px solid #efd482; border-radius: 12px; padding: 16px; margin: 16px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.notice button { margin: 8px; }
+.steps { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+.steps button { min-height: 44px; border-radius: 9px; border: 1px solid #deded6; padding: 10px 12px; background: white; color: #44443a; cursor: pointer; font-size: 13px; font-weight: 600; }
+.steps .selectedStep { border-color: #d9b628; background: #fff2ab; color: #473600; }
+.formCard { margin: 0; }
+.formCard legend { font-weight: 800; font-size: 20px; padding: 0 8px; max-width: 100%; }
+.note { color: #68685e; font-size: 13px; line-height: 1.7; }
+.confirm { border: 1px solid #cdddae; background: #f1f8e8; border-radius: 12px; padding: 14px; margin: 14px 0; overflow-wrap: anywhere; }
+.bottom { justify-content: flex-start; background: #fff8d4; border: 1px solid #eadc99; padding: 16px; border-radius: 14px; margin-top: 24px; }
+.reportHeader { border-bottom: 1px solid #e5e5dc; margin-bottom: 22px; padding-bottom: 18px; overflow-wrap: anywhere; }
+.reportHeader h2 { font-size: 26px; margin: 10px 0; }
+.reportHeader p { line-height: 1.6; }
+.metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.metrics > div { border: 1px solid #ede1a1; border-radius: 12px; background: #fffbed; padding: 16px; display: grid; gap: 8px; }
+.metrics span { font-size: 12px; color: #676047; }
+.metrics strong { font-size: 25px; }
+.metrics small { font-size: 12px; font-weight: 400; line-height: 1.5; }
+.section { border-top: 1px solid #e5e5dc; padding: 6px 0; }
+.section summary { cursor: pointer; padding: 16px 0; font-weight: 700; min-height: 48px; }
+.values { margin: 0 0 20px; }
+.values > div { border-radius: 10px; background: #f7f7f3; padding: 14px; min-width: 0; }
+.values dt { font-size: 12px; color: #67675f; margin-bottom: 7px; }
+.values dd { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+.chart { display: block; width: 100%; height: auto; max-height: 220px; }
+@media(max-width:650px) {
+  .shell { padding: 16px 12px 40px; }
+  .top { margin-bottom: 24px; }
+  .card, .login, .formCard, .report, .empty { padding: 18px 14px; border-radius: 14px; }
+  .grid, .values, .list { grid-template-columns: minmax(0,1fr); }
+  .metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .metrics > div { padding: 12px; }
+  .steps { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .steps button { text-align: left; font-size: 12px; }
+  .search { flex-wrap: wrap; }
+  .search label { flex-basis: 100%; }
+  .toolbar > button, .bottom > button { flex: 1 1 150px; }
+  .bottom { padding: 12px; }
+  .reportHeader h2 { font-size: 23px; }
+}

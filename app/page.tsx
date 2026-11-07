@@ -177,11 +177,17 @@ function MembershipBoundary({ user }: { user: User }) {
   useEffect(() => {
     let disposed = false;
     let running = false;
+    let teamChecked = false;
     let lastState = "";
     const refresh = async () => {
       if (disposed || running || document.hidden || !navigator.onLine) return;
       running = true;
       try {
+        if (!teamChecked) {
+          const { data: team } = await createClient().rpc("summer_is_assessment_team");
+          teamChecked = true;
+          if (team === true) { window.location.replace("/professor"); return; }
+        }
         const { data, error: membershipError } = await createClient().rpc("summer_get_membership");
         if (membershipError || !data) throw membershipError || new Error("membership unavailable");
         if (disposed) return;
@@ -755,6 +761,7 @@ function Dashboard({ user }: { user: User }) {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          <a className="nav-item" href="/avaliacoes"><ShieldCheck size={19} />Minhas avaliações</a>
           {access?.is_admin && (
             <a className="nav-item admin-link" href="/admin">
               <ShieldCheck size={19} />
@@ -1564,6 +1571,7 @@ function Dashboard({ user }: { user: User }) {
               <p className="eyebrow">SEU PERFIL</p>
               <h2 className="panel-title">{displayName}</h2>
               <p className="lead profile-email">{user.email}</p>
+              <a className="secondary-button" href="/avaliacoes">Minhas avaliações físicas →</a>
               <section
                 className={
                   paid ? "profile-plan-card pro" : "profile-plan-card free"
