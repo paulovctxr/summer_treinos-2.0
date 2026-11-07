@@ -18,7 +18,7 @@ Não é necessário dar permissão de administrador à conta da equipe. A config
 - Nova avaliação: localizar a matrícula e confirmar o nome do aluno. Sem cadastro confirmado, preencher nome e matrícula e salvar como rascunho; vincular depois.
 - Registrar o professor responsável em cada avaliação. A identidade autenticada é a conta compartilhada, portanto esse nome é uma informação declarada, não uma assinatura individual autenticada.
 - Preencher as sete etapas. O rascunho é salvo após uma breve pausa na digitação, com indicação de sucesso ou erro. Nenhum dado da ficha é guardado no localStorage.
-- Conferir em **Visualizar como aluno** e publicar. O aluno encontra **Minhas avaliações** no Perfil e no menu do computador, sem depender do plano Pro.
+- Conferir em **Visualizar como aluno** e publicar. O aluno encontra **Ver avaliação** logo no início da tela principal, além dos acessos no Perfil e no menu do computador, sem depender do plano Pro.
 - Publicações são preservadas no histórico. Para uma reavaliação, usar **Nova reavaliação**; os dados de identificação são mantidos, mas as novas medidas começam vazias.
 - Em edição simultânea, o segundo salvamento de uma versão antiga é recusado. O professor pode baixar sua cópia Excel antes de reabrir o rascunho atualizado.
 - **Baixar Excel (.xlsx)** gera uma planilha real, editável, com seções e unidades. O arquivo usa `AAAA-MM-DD_Avaliacao_MATRICULA.xlsx`. O navegador determina a pasta; ative “Perguntar onde salvar cada arquivo” para selecionar a pasta do professor. Editar essa cópia não altera a avaliação no site.
