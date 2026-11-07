@@ -17,6 +17,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { AdminProFunnel } from "@/components/admin-pro-funnel";
 import { AdminTestimonials } from "@/components/admin-testimonials";
+import studentStyles from "./admin-students.module.css";
 import {
   DEFAULT_PLAN_CONFIG,
   formatBRL,
@@ -424,8 +425,8 @@ export function AdminPanel() {
             A renovação é manual: a data indica até quando o acesso está
             liberado. Nenhuma cobrança é feita automaticamente.
           </p>
-          <div className="table-scroll" aria-busy={loading}>
-            <table>
+          <div className={`table-scroll ${studentStyles.students}`} aria-busy={loading}>
+            <table role="table">
               <caption className="sr-only">
                 Alunos, planos, vencimentos e ações administrativas
               </caption>
@@ -449,8 +450,8 @@ export function AdminPanel() {
                   </tr>
                 ) : result?.students.length ? (
                   result.students.map((student) => (
-                    <tr key={student.id}>
-                      <td>
+                    <tr key={student.id} className={studentStyles.student}>
+                      <td className={studentStyles.identity}>
                         <strong>{student.name || "Nome não informado"}</strong>
                         <small>{student.email}</small>
                         <small>
@@ -458,8 +459,8 @@ export function AdminPanel() {
                           {!student.confirmed && " · E-mail pendente"}
                         </small>
                       </td>
-                      <td><strong>{student.registration || "Não informada"}</strong></td>
-                      <td>
+                      <td data-label="Matrícula"><strong>{student.registration || "Não informada"}</strong></td>
+                      <td data-label="Academia">
                         <span className={`membership-badge ${student.membership_status}`}>
                           {student.membership_status === "active" ? "Aluno ativo"
                             : student.membership_status === "pending" ? "Ativação automática"
@@ -467,7 +468,7 @@ export function AdminPanel() {
                                 : "Inativo"}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Plano">
                         <span
                           className={`plan-badge ${student.subscription_status === "pro" ? "plus" : "basic"}`}
                         >
@@ -481,7 +482,7 @@ export function AdminPanel() {
                           </small>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Renovação até">
                         <strong>{date(student.subscription_expires_at)}</strong>
                         {student.subscription_expires_at && (
                           <small>
@@ -496,7 +497,7 @@ export function AdminPanel() {
                           </small>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Situação" className={studentStyles.status}>
                         <span
                           className={`status-badge ${student.subscription_status === "pro" ? "active" : student.subscription_status}`}
                         >
@@ -518,7 +519,12 @@ export function AdminPanel() {
                             </small>
                           )}
                       </td>
-                      <td>
+                      <td className={studentStyles.management}>
+                        <details className={studentStyles.actions}>
+                          <summary>
+                            Gerenciar aluno
+                            {student.pending_request && <span className={studentStyles.pending}>PIX pendente</span>}
+                          </summary>
                         <div className="admin-row-actions">
                           <label className="admin-registration-field">
                             Matrícula de 4 números
@@ -648,6 +654,7 @@ export function AdminPanel() {
                             </button>
                           )}
                         </div>
+                        </details>
                       </td>
                     </tr>
                   ))
