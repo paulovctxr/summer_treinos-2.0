@@ -13,6 +13,8 @@ Não é necessário dar permissão de administrador à conta da equipe. A config
 
 ## Uso
 
+- A área da equipe abre com pastas por professor. Toque no cartão para consultar as fichas daquele responsável, buscar alunos e filtrar rascunhos/publicações. O acesso continua compartilhado; as pastas são organização, não contas separadas.
+- **Novo professor** inicia a primeira avaliação com o nome preenchido. A pasta permanece no site quando essa ficha é salva. Avaliações antigas sem responsável ficam em **Sem professor**; preencher o nome no rascunho move a ficha para a pasta correspondente. Essa organização não exige nova migração.
 - Nova avaliação: localizar a matrícula e confirmar o nome do aluno. Sem cadastro confirmado, preencher nome e matrícula e salvar como rascunho; vincular depois.
 - Registrar o professor responsável em cada avaliação. A identidade autenticada é a conta compartilhada, portanto esse nome é uma informação declarada, não uma assinatura individual autenticada.
 - Preencher as sete etapas. O rascunho é salvo após uma breve pausa na digitação, com indicação de sucesso ou erro. Nenhum dado da ficha é guardado no localStorage.

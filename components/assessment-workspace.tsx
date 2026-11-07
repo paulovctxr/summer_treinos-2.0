@@ -4,20 +4,29 @@ import { createClient } from '@/lib/supabase/client';
 import { ASSESSMENT_SECTIONS, assessmentIssues, displayDate, localDate, newAssessment, type Assessment, type AssessmentSummary, type AssessmentStudent } from '@/lib/assessments';
 import { AssessmentReport } from './assessment-report';
 import { AssessmentEvolution } from './assessment-evolution';
+import { AssessmentFolders } from './assessment-folders';
+import { allAssessmentSummaries } from '@/lib/assessment-folders';
 import styles from './assessments.module.css';
 
 export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) {
   const [items,setItems]=useState<AssessmentSummary[]>([]); const [loading,setLoading]=useState(true);
-  const [error,setError]=useState(''); const [search,setSearch]=useState(''); const [query,setQuery]=useState(''); const [offset,setOffset]=useState(0);
+  const [error,setError]=useState(''); const [offset,setOffset]=useState(0);
   const [selected,setSelected]=useState<Assessment | null>(null); const [previous,setPrevious]=useState<Assessment | null>(null);
   const [busy,setBusy]=useState(false); const [editing,setEditing]=useState(false);
+  const [folder,setFolder]=useState<string|null>(null);
+  const requestVersion=useRef(0);
   const load=useCallback(async () => {
+    const version=++requestVersion.current;
     setLoading(true); setError('');
-    try { const {data,error}=await createClient().rpc('summer_assessment_list',{p_offset:offset,p_search:query}); if(error) throw error; setItems(data || []); }
-    catch { setError('Não foi possível carregar as avaliações. Tente novamente; se persistir, consulte a administração.'); }
-    finally { setLoading(false); }
-  },[offset,query]);
-  useEffect(()=>{void load();},[load]);
+    try {
+      const readPage=async(pageOffset:number)=>{const {data,error}=await createClient().rpc('summer_assessment_list',{p_offset:pageOffset,p_search:''});if(error)throw error;return (data||[]) as AssessmentSummary[];};
+      const next=teacher?await allAssessmentSummaries(readPage,()=>version===requestVersion.current):await readPage(offset);
+      if(version===requestVersion.current)setItems(next);
+    }
+    catch { if(version===requestVersion.current)setError('Não foi possível carregar as avaliações. Tente novamente; se persistir, consulte a administração.'); }
+    finally { if(version===requestVersion.current)setLoading(false); }
+  },[offset,teacher]);
+  useEffect(()=>{void load();return()=>{requestVersion.current++;};},[load]);
   async function open(item:AssessmentSummary) {
     setBusy(true); setError(''); setPrevious(null);
     try {
@@ -33,32 +42,32 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
     catch { setError('Não foi possível gerar o Excel. Tente novamente.'); } finally {setBusy(false);}
   }
   const back=()=>{setSelected(null);setEditing(false);setPrevious(null);void load();};
+  const start=(instructor:string)=>{setFolder(instructor);setSelected({...newAssessment(),instructor});setEditing(true);setPrevious(null);};
   return <main className={styles.shell}>
-<header className={styles.top}>{selected && editing ? <strong>Summer Treinos · Avaliação em andamento</strong> : <><a href="/">← Summer Treinos</a><button className={styles.secondary} onClick={async()=>{const {error}=await createClient().auth.signOut({scope:'local'}); if(error){setError('Não foi possível sair. Tente novamente.');return;} window.location.assign(teacher?'/professor':'/');}}>Sair da conta</button></>}</header>
+<header className={styles.top}>{selected && editing ? <strong>Avaliação em andamento</strong> : <>{teacher?<strong>Área de avaliações</strong>:<a href="/">← Summer Treinos</a>}<button className={styles.secondary} onClick={async()=>{const {error}=await createClient().auth.signOut({scope:'local'}); if(error){setError('Não foi possível sair. Tente novamente.');return;} window.location.assign(teacher?'/professor':'/');}}>Sair da conta</button></>}</header>
     <div className={styles.heading}><div><p className={styles.eyebrow}>{teacher?'ESPAÇO DA EQUIPE':'SEU ACOMPANHAMENTO'}</p><h1>{teacher?'Avaliações físicas':'Minhas avaliações'}</h1><p>{teacher?'Avalie, acompanhe e entregue os resultados ao aluno.':'Suas medidas, orientações e evolução em um só lugar.'}</p></div>
-      {teacher && !selected && <button className={styles.primary} onClick={()=>{setSelected(newAssessment());setEditing(true);}}>+ Nova avaliação</button>}
     </div>
     {error && <div className={styles.notice} role="alert">{error}<button className={styles.secondary} onClick={()=>void load()}>Tentar novamente</button></div>}
-    {selected ? editing ? <AssessmentEditor initial={selected} onClose={back} onPublished={a=>{setSelected(a);setEditing(false);void load();}} /> : <>
-      <div className={styles.toolbar}><button className={styles.secondary} onClick={back}>← Todas as avaliações</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
-        {teacher && <button className={styles.secondary} onClick={()=>{const next=newAssessment();setSelected({...next,student_id:selected.student_id,student_name:selected.student_name,registration:selected.registration,model:selected.model});setEditing(true);setPrevious(null);}}>Nova reavaliação</button>}
+    {selected ? editing ? <AssessmentEditor initial={selected} onClose={a=>{setFolder(a.instructor);back();}} onPublished={a=>{setSelected(a);setFolder(a.instructor);setEditing(false);void load();}} /> : <>
+      <div className={styles.toolbar}><button className={styles.secondary} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
+        {teacher && <button className={styles.secondary} onClick={()=>{const next=newAssessment();setSelected({...next,student_id:selected.student_id,student_name:selected.student_name,registration:selected.registration,model:selected.model,instructor:selected.instructor});setEditing(true);setPrevious(null);}}>Nova reavaliação</button>}
       </div><AssessmentReport assessment={selected} previous={previous} />
       {selected.student_id && <AssessmentEvolution studentId={selected.student_id} />}
-    </> : <>
-      {teacher && <form className={styles.search} onSubmit={e=>{e.preventDefault();setOffset(0);setQuery(search.trim());}}><label>Buscar por nome ou matrícula<input value={search} onChange={e=>setSearch(e.target.value)} maxLength={120} placeholder="Nome ou 4 números da matrícula" /></label><button className={styles.secondary} disabled={loading}>Buscar</button></form>}
-      {loading ? <p role="status">Carregando avaliações…</p> : !items.length && !error ? <section className={styles.empty}><h2>{teacher?'Nenhuma avaliação encontrada':'Sua avaliação aparecerá aqui'}</h2><p>{teacher?'Comece uma nova avaliação ou ajuste a busca.':'Depois da avaliação na academia, o professor publicará os resultados na sua conta. Não é necessário contratar o Pro para consultar.'}</p></section> :
+    </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} busy={busy}/> : <>
+      {loading ? <p role="status">Carregando avaliações…</p> : !items.length && !error ? <section className={styles.empty}><h2>Sua avaliação aparecerá aqui</h2><p>Depois da avaliação na academia, o professor publicará os resultados na sua conta. Não é necessário contratar o Pro para consultar.</p></section> :
         <div className={styles.list}>{items.map(a=><button className={styles.listCard} key={a.id} disabled={busy} onClick={()=>void open(a)}>
-          <span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h2>{teacher?a.student_name || 'Aluno a confirmar':`Avaliação de ${displayDate(a.assessed_on)}`}</h2>
-          <p>{teacher?`${displayDate(a.assessed_on)} · Matrícula ${a.registration || 'pendente'}`:`Professor: ${a.instructor}`}</p>
-          <span>{teacher && a.status==='draft'?'Continuar preenchimento':'Ver avaliação'} →</span>
+          <span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h2>Avaliação de {displayDate(a.assessed_on)}</h2>
+          <p>Professor: {a.instructor}</p>
+          <span>Ver avaliação →</span>
         </button>)}</div>}
       <div className={styles.toolbar}>{offset>0 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(Math.max(0,offset-30))}>Anteriores</button>}{items.length===30 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(offset+30)}>Mais avaliações</button>}</div>
     </>}
   </main>;
 }
 
-function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onClose:()=>void;onPublished:(a:Assessment)=>void}) {
+function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onClose:(a:Assessment)=>void;onPublished:(a:Assessment)=>void}) {
   const [record,setRecord]=useState(initial);const current=useRef(initial);
+  const lastSaved=useRef(initial);
   const [step,setStep]=useState(0);const [preview,setPreview]=useState(false);const [saveMessage,setSaveMessage]=useState(initial.revision?'Rascunho salvo':'Novo rascunho');
   const [errors,setErrors]=useState<string[]>([]);const [busy,setBusy]=useState(false);const [finding,setFinding]=useState(false);
   const [candidate,setCandidate]=useState<AssessmentStudent | null>(null);const [lookupMessage,setLookupMessage]=useState('');
@@ -81,6 +90,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
       }
       if(!mounted.current) return null;
       savedGeneration.current=version;
+      lastSaved.current=data;
       current.current={...current.current,revision:data.revision,updated_at:data.updated_at,status:data.status,published_at:data.published_at};
       setRecord(current.current);setSaveMessage(version===generation.current?`Salvo às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`:'Há alterações para salvar');
       return data;
@@ -108,7 +118,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
   function close(){
     if(saving.current)return;
     if(generation.current!==savedGeneration.current && !confirm('Há alterações não salvas. Sair e descartá-las?'))return;
-    onClose();
+    onClose(lastSaved.current);
   }
   async function publish(){
     if(!confirm(`Publicar esta avaliação para ${current.current.student_name}, matrícula ${current.current.registration}? Depois de publicada, ela será preservada no histórico.`))return;
@@ -120,7 +130,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
   }
   const titles=['Identificação',...ASSESSMENT_SECTIONS.map(s=>s.title)];
   return <section className={styles.editor}>
-    <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={close}>← Todas as avaliações</button><span className={styles.saveStatus} role="status">{saveMessage}</span></div>
+    <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={close}>← Pasta do professor</button><span className={styles.saveStatus} role="status">{saveMessage}</span></div>
     {errors.length>0 && <div role="alert" className={styles.notice}><strong>Confira antes de continuar</strong><ul>{errors.map((error,i)=><li key={i}>{error}</li>)}</ul></div>}
     <nav className={styles.steps} aria-label="Etapas da avaliação">{titles.map((title,i)=><button key={title} className={step===i&&!preview?styles.selectedStep:''} aria-current={step===i&&!preview?'step':undefined} onClick={()=>{setStep(i);setPreview(false);}}>{i+1}. {title}</button>)}</nav>
     {preview ? <AssessmentReport assessment={record} /> : <fieldset className={styles.formCard} disabled={publishing}>

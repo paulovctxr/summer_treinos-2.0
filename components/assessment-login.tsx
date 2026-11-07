@@ -17,7 +17,7 @@ export function AssessmentLogin({ restricted = false }: { restricted?: boolean }
   }
   return <main className={styles.shell}><section className={styles.login}>
     <img src="/summer-fit-brand.jpeg" alt="Summer Fit" width="200" />
-    <p className={styles.eyebrow}>ÁREA DE AVALIAÇÕES</p><h1>Acesso da equipe</h1>
+    <p className={styles.eyebrow}>SUMMER FIT</p><h1>Acesso equipe</h1>
     {restricted ? <><p>Esta conta não tem acesso à área do professor.</p><button className={styles.primary} onClick={async () => { const {error}=await createClient().auth.signOut({scope:'local'}); if(error){setMessage('Não foi possível sair. Tente novamente.');return;} window.location.assign('/professor'); }}>Entrar com a conta da equipe</button></> : <>
       <p>Use o e-mail e a senha compartilhados pela academia.</p>
       <form onSubmit={submit} className={styles.fields}>

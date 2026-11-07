@@ -63,6 +63,21 @@
 .values dt { font-size: 12px; color: #67675f; margin-bottom: 7px; }
 .values dd { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
 .chart { display: block; width: 100%; height: auto; max-height: 220px; }
+.folderHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 30px 0 22px; }
+.folderHeading h2 { margin: 14px 0 8px; overflow-wrap: anywhere; }
+.folderHeading p { color: #68685e; line-height: 1.6; }
+.folderHeading button { gap: 8px; }
+.folders { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 18px; }
+.folderCard { display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-width: 0; min-height: 240px; padding: 24px; border: 1px solid #e5dcae; border-radius: 18px; background: #fffef8; color: #24241f; cursor: pointer; overflow-wrap: anywhere; }
+.folderCard:hover { border-color: #b99b28; background: #fffbed; }
+.folderIcon { display: inline-flex; padding: 12px; color: #886f05; background: #fff1ad; border-radius: 12px; margin-bottom: 16px; }
+.folderCard h3 { font-size: 20px; margin: 0 0 12px; }
+.folderCard > strong { font-size: 14px; }
+.folderCard p { font-size: 12px; color: #696452; margin: 8px 0 20px; }
+.folderOpen { display: flex; align-items: center; gap: 8px; margin-top: auto; font-size: 14px; font-weight: 700; }
+.folderFilters { display: grid; grid-template-columns: minmax(0,1fr) 180px; gap: 16px; margin-bottom: 22px; }
+.folderFilters label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; }
+.folderFilters input, .folderFilters select { width: 100%; min-width: 0; min-height: 46px; padding: 12px; border: 1px solid #d4d4cc; border-radius: 10px; background: #fffef9; font: inherit; font-size: 16px; }
 @media(max-width:650px) {
   .shell { padding: 16px 12px 40px; }
   .top { margin-bottom: 24px; }
@@ -77,4 +92,8 @@
   .toolbar > button, .bottom > button { flex: 1 1 150px; }
   .bottom { padding: 12px; }
   .reportHeader h2 { font-size: 23px; }
+  .folders { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .folderCard { padding: 16px; min-height: 230px; }
+  .folderCard h3 { font-size: 17px; }
+  .folderFilters { grid-template-columns: minmax(0,1fr); }
 }
