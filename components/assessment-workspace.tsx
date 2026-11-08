@@ -7,9 +7,10 @@ import { AssessmentEvolution } from './assessment-evolution';
 import { AssessmentFolders } from './assessment-folders';
 import { allAssessmentSummaries } from '@/lib/assessment-folders';
 import { AssessmentRemoval, type AssessmentRemovalTarget } from './assessment-removal';
+import { AssessmentTrash } from './assessment-trash';
 import styles from './assessments.module.css';
 
-export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) {
+export function AssessmentWorkspace({ teacher = false, embedded = false, onCreateTraining }: { teacher?: boolean; embedded?: boolean; onCreateTraining?:(assessment:Assessment)=>void }) {
   const [items,setItems]=useState<AssessmentSummary[]>([]); const [loading,setLoading]=useState(true);
   const [error,setError]=useState(''); const [offset,setOffset]=useState(0);
   const [selected,setSelected]=useState<Assessment | null>(null); const [previous,setPrevious]=useState<Assessment | null>(null);
@@ -17,6 +18,7 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
   const [folder,setFolder]=useState<string|null>(null);
   const [removal,setRemoval]=useState<AssessmentRemovalTarget|null>(null);
   const [feedback,setFeedback]=useState('');
+  const [trash,setTrash]=useState(false);
   const requestVersion=useRef(0);
   const load=useCallback(async () => {
     const version=++requestVersion.current;
@@ -35,6 +37,7 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
     try {
       const {data,error}=await createClient().rpc('summer_assessment_get',{p_id:item.id}); if(error) throw error;
       setSelected(data); setEditing(teacher && data.status==='draft');
+      if(!teacher){const seen=await createClient().rpc('summer_assessment_seen',{p_id:item.id});if(!seen.error){setSelected({...data,viewed_at:seen.data});setItems(current=>current.map(a=>a.id===item.id?{...a,viewed_at:seen.data}:a));}}
       const older=items.find(other=>other.student_id===item.student_id && other.status==='published' && other.assessed_on<item.assessed_on);
       if(older) { const result=await createClient().rpc('summer_assessment_get',{p_id:older.id}); if(!result.error) setPrevious(result.data); }
     } catch { setError('Não foi possível abrir esta avaliação.'); } finally { setBusy(false); }
@@ -46,26 +49,32 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
   }
   const back=()=>{setSelected(null);setEditing(false);setPrevious(null);void load();};
   const start=(instructor:string)=>{setFolder(instructor);setSelected({...newAssessment(),instructor});setEditing(true);setPrevious(null);};
-  return <main className={styles.shell}>
-<header className={styles.top}>{selected && editing ? <strong>Avaliação em andamento</strong> : <>{teacher?<strong>Área de avaliações</strong>:<a href="/">← Summer Treinos</a>}<button className={styles.secondary} onClick={async()=>{const {error}=await createClient().auth.signOut({scope:'local'}); if(error){setError('Não foi possível sair. Tente novamente.');return;} window.location.assign(teacher?'/professor':'/');}}>Sair da conta</button></>}</header>
+  return <main className={embedded?styles.embedded:styles.shell}>
+{!embedded && <header className={styles.top}>{selected && editing ? <strong>Avaliação em andamento</strong> : <>{teacher?<strong>Área de avaliações</strong>:<a href="/">← Summer Treinos</a>}<button className={styles.secondary} onClick={async()=>{const {error}=await createClient().auth.signOut({scope:'local'}); if(error){setError('Não foi possível sair. Tente novamente.');return;} window.location.assign(teacher?'/professor':'/');}}>Sair da conta</button></>}</header>}
     <div className={styles.heading}><div><p className={styles.eyebrow}>{teacher?'ESPAÇO DA EQUIPE':'SEU ACOMPANHAMENTO'}</p><h1>{teacher?'Avaliações físicas':'Minhas avaliações'}</h1><p>{teacher?'Avalie, acompanhe e entregue os resultados ao aluno.':'Suas medidas, orientações e evolução em um só lugar.'}</p></div>
     </div>
     {error && <div className={styles.notice} role="alert">{error}<button className={styles.secondary} onClick={()=>void load()}>Tentar novamente</button></div>}
     {feedback && <p className={styles.confirm} role="status">{feedback}</p>}
+    {teacher&&!selected&&!trash&&<div className={styles.toolbar}><button className={styles.secondary} onClick={()=>{setTrash(true);setFeedback('');}}>Lixeira</button></div>}
+    {teacher&&trash?<AssessmentTrash onClose={()=>setTrash(false)} onRestored={()=>void load()}/>:<>
     {selected ? editing ? <AssessmentEditor initial={selected} onClose={a=>{setFolder(a.instructor);back();}} onPublished={a=>{setSelected(a);setFolder(a.instructor);setEditing(false);void load();}} /> : <>
-      <div className={styles.toolbar}><button className={styles.secondary} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
+      <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
         {teacher && <button className={styles.secondary} onClick={()=>{const next=newAssessment();setSelected({...next,student_id:selected.student_id,student_name:selected.student_name,registration:selected.registration,model:selected.model,instructor:selected.instructor});setEditing(true);setPrevious(null);}}>Nova reavaliação</button>}
         {teacher && <button className={styles.removeButton} disabled={busy} onClick={()=>{setFeedback('');setRemoval({kind:'assessment',name:selected.student_name,records:[selected]});}}>Remover avaliação</button>}
+        {teacher&&selected.student_id&&onCreateTraining&&<button className={styles.primary} disabled={busy} onClick={()=>onCreateTraining(selected)}>Montar treino para este aluno</button>}
+        {teacher&&selected.status==='published'&&<p className={styles.note}>{selected.viewed_at?`Visualizada pelo aluno em ${new Date(selected.viewed_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}`:'Ainda não visualizada pelo aluno'}</p>}
       </div><AssessmentReport assessment={selected} previous={previous} />
       {selected.student_id && <AssessmentEvolution studentId={selected.student_id} />}
     </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} onRemove={target=>{setFeedback('');setRemoval(target);}} busy={busy}/> : <>
       {loading ? <p role="status">Carregando avaliações…</p> : !items.length && !error ? <section className={styles.empty}><h2>Sua avaliação aparecerá aqui</h2><p>Depois da avaliação na academia, o professor publicará os resultados na sua conta. Não é necessário contratar o Pro para consultar.</p></section> :
         <div className={styles.list}>{items.map(a=><button className={styles.listCard} key={a.id} disabled={busy} onClick={()=>void open(a)}>
           <span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h2>Avaliação de {displayDate(a.assessed_on)}</h2>
+          {!a.viewed_at&&<span className={styles.badge}>Nova · ainda não visualizada</span>}
           <p>Professor: {a.instructor}</p>
           <span>Ver avaliação →</span>
         </button>)}</div>}
       <div className={styles.toolbar}>{offset>0 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(Math.max(0,offset-30))}>Anteriores</button>}{items.length===30 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(offset+30)}>Mais avaliações</button>}</div>
+    </>}
     </>}
     {teacher && removal && <AssessmentRemoval target={removal} onClose={()=>setRemoval(null)} onRefresh={()=>void load()} onRemoved={count=>{
       if(removal.kind==='folder')setFolder(null);

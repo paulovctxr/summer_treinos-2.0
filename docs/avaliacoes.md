@@ -3,7 +3,7 @@
 ## Ativação
 
 1. No Supabase do projeto, abra **SQL Editor → New query**.
-2. Execute o conteúdo completo de `supabase/migrations/20261107140000_physical_assessments.sql` e depois `supabase/migrations/20261107180000_assessment_removal.sql`. Se as avaliações já estiverem ativas, execute apenas a segunda migração para habilitar a remoção. As migrações são transacionais e sua execução não remove avaliações.
+2. Execute, nesta ordem, `supabase/migrations/20261107140000_physical_assessments.sql`, `supabase/migrations/20261107180000_assessment_removal.sql` e `supabase/migrations/20261108120000_team_workspace.sql`. Se as avaliações e remoções já estiverem ativas, execute apenas a última para habilitar avisos, recuperação e treinos. As migrações são transacionais e sua execução não remove avaliações.
 3. Na Vercel, mantenha `SUPABASE_SERVICE_ROLE_KEY` configurada como segredo do servidor. Ela já é usada pelo projeto; não crie uma variável `NEXT_PUBLIC_` para essa chave.
 4. Publique a versão do código contendo esta mudança.
 5. Entre com a conta de administrador em `/admin`. Em **Avaliações físicas → Configurar acesso da equipe**, informe um e-mail exclusivo, ainda não cadastrado no site, e uma senha de pelo menos 12 caracteres. O e-mail deve ser controlado pela academia para recuperar a senha.
@@ -21,9 +21,21 @@ Não é necessário dar permissão de administrador à conta da equipe. A config
 - Conferir em **Visualizar como aluno** e publicar. O aluno encontra **Ver avaliação** logo no início da tela principal, além dos acessos no Perfil e no menu do computador, sem depender do plano Pro.
 - Publicações são preservadas no histórico. Para uma reavaliação, usar **Nova reavaliação**; os dados de identificação são mantidos, mas as novas medidas começam vazias.
 - **Remover avaliação** retira uma ficha da área da equipe e do aluno, após confirmação. **Remover pasta** mostra a quantidade total e quantas estão publicadas e exige digitar o nome do professor; remove todas as fichas confirmadas daquela pasta. Se alguma ficha mudou desde o carregamento, a ação é recusada e a lista precisa ser atualizada. Fichas novas criadas depois da conferência do banco são preservadas.
-- As remoções ficam em um registro privado de auditoria, sem acesso pelas contas do site. Não há opção de desfazer na interface. Um rascunho removido não pode ser recriado por uma sessão antiga. Somente a equipe autorizada e a administração podem remover fichas; as pastas continuam compartilhadas.
+- As remoções ficam na **Lixeira**, acessível apenas à equipe autorizada e à administração. É possível recuperar uma ficha ou todas as removidas de um professor, após confirmação. Publicações recuperadas voltam para os alunos; rascunhos continuam privados. A recuperação preserva os dados e incrementa a revisão para bloquear salvamentos de sessões antigas. Não há exclusão definitiva nem prazo automático de limpeza.
 - Em edição simultânea, o segundo salvamento de uma versão antiga é recusado. O professor pode baixar sua cópia Excel antes de reabrir o rascunho atualizado.
 - **Baixar Excel (.xlsx)** gera uma planilha real, editável, com seções e unidades. O arquivo usa `AAAA-MM-DD_Avaliacao_MATRICULA.xlsx`. O navegador determina a pasta; ative “Perguntar onde salvar cada arquivo” para selecionar a pasta do professor. Editar essa cópia não altera a avaliação no site.
+
+## Avisos e treinos da equipe
+
+- O aluno vê **Nova avaliação disponível** na tela principal enquanto houver avaliações publicadas que ainda não abriu. Consultar a lista não marca como lida; abrir uma ficha registra a primeira visualização na conta do próprio aluno. A equipe vê essa data. As avaliações antigas começam como não visualizadas, pois não havia registro anterior de leitura. Não são enviados e-mails ou notificações fora do site.
+- A área compartilhada `/professor` tem abas **Avaliações** e **Treinos**. Trocar de aba mantém o trabalho aberto. Os treinos usam **Salvar rascunho** explícito e avisam antes de descartar alterações ou fechar a página. A conta continua única e o professor responsável é informado na ficha.
+- Na avaliação publicada, **Montar treino para este aluno** inicia um rascunho com aluno, matrícula, professor e referência à avaliação. A avaliação pode ser consultada durante a edição. Não há prescrição automática nem cópia de dados clínicos para o treino.
+- Cada ficha aceita até 12 treinos (A, B, C etc.), com até 20 exercícios por treino, sugestões de nomes, séries, repetições/tempo, carga, descanso e orientações. Séries e repetições começam vazias e são obrigatórias para publicar. Há prévia, Excel editável e impressão para a equipe.
+- **Publicar para o aluno** verifica vínculo e matrícula no servidor. O aluno encontra **Fichas do professor** no Início e em Treinos e pode iniciar a sessão pelo fluxo existente, sem depender do plano Pro. O histórico de sessões, as fichas próprias e as cargas anteriores não são substituídos.
+- Uma ficha publicada é preservada. **Criar nova versão** gera um novo rascunho com novos identificadores; a versão anterior continua disponível para consulta. A interface identifica a mais recente, sem declarar que ela substitui automaticamente todas as fichas anteriores.
+- A ficha inclui objetivo, zona alvo, data, revisão e próxima reavaliação, preenchidos pelo professor e presentes no site, no Excel e na impressão. A zona alvo não é calculada automaticamente.
+- **Imprimir ficha · meia A4** abre uma janela de prévia no modelo da academia: logo Summer Fit, identificação e tabela de exercícios, séries, repetições/tempo, carga e observação. Cada metade horizontal mede 210 × 148,5 mm (A5); a folha é A4 em retrato, com linha de corte e opção de duas cópias iguais por folha. Cada treino tem sua ficha; a paginação mede o conteúdo e cria continuações sem omitir exercícios ou notas. Usar A4, retrato, escala 100% e desativar cabeçalhos/rodapés do navegador. Cargas não preenchidas ficam em branco para anotação à mão. Rascunhos impressos são identificados como não publicados. A janela não é enviada automaticamente à impressora.
+- **Baixar Excel (.xlsx)** cria uma aba por treino. A cópia no computador é independente da ficha no site.
 
 ## Dados e cálculos
 

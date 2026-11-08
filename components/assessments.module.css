@@ -1,5 +1,19 @@
 .shell { max-width: 1120px; margin: 0 auto; padding: 24px; color: var(--ink, #222); min-width: 0; }
 .shell *, .card * { box-sizing: border-box; }
+.embedded { min-width: 0; }
+.teamTabs { display: flex; gap: 12px; margin: 0 0 30px; border-bottom: 1px solid #ddd9c9; padding-bottom: 14px; }
+.teamTabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border: 1px solid #ddd7be; background: white; border-radius: 12px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
+.teamTabs button[aria-pressed=true] { background: #fff1ad; border-color: #c7a624; color: #534000; }
+.trainingForm { min-width: 0; border: 1px solid #e2e2da; padding: 22px; border-radius: 16px; background: white; }
+.trainingForm legend { font-weight: 700; padding: 0 8px; }
+.trainingMetadata { margin-top: 20px; }
+.trainingBlock { border-top: 1px solid #e5dfc5; margin-top: 24px; padding-top: 16px; min-width: 0; }
+.trainingExercise { border: 1px solid #e5dfd4; border-radius: 12px; padding: 18px; margin: 18px 0; background: #fffdf6; min-width: 0; }
+.exerciseActions { display: flex; gap: 8px; flex-wrap: wrap; }
+.reference { border: 1px solid #e7d890; background: #fff9da; border-radius: 12px; padding: 18px; margin: 20px 0; min-width: 0; }
+.trainingNotes { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.prescriptionList { margin: 0; padding-left: 22px; }
+.prescriptionList li { border-bottom: 1px solid #e8e5d7; padding: 14px 0; overflow-wrap: anywhere; }
 .top, .heading, .toolbar, .bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .top { margin-bottom: 34px; }
 .top a { color: inherit; font-weight: 700; text-decoration: none; }
@@ -94,6 +108,9 @@
 .folderFilters label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; }
 .folderFilters input, .folderFilters select { width: 100%; min-width: 0; min-height: 46px; padding: 12px; border: 1px solid #d4d4cc; border-radius: 10px; background: #fffef9; font: inherit; font-size: 16px; }
 @media(max-width:650px) {
+  .teamTabs button { flex: 1; padding: 12px; }
+  .trainingForm, .trainingExercise { padding: 14px 10px; }
+  .trainingForm .grid { gap: 14px; }
   .shell { padding: 16px 12px 40px; }
   .top { margin-bottom: 24px; }
   .card, .login, .formCard, .report, .empty { padding: 18px 14px; border-radius: 14px; }

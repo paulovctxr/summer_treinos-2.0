@@ -23,7 +23,7 @@ export function AssessmentLogin({ restricted = false }: { restricted?: boolean }
       <form onSubmit={submit} className={styles.fields}>
         <label>E-mail da equipe<input name="email" type="email" autoComplete="username" required /></label>
         <label>Senha<input name="password" type="password" autoComplete="current-password" required /></label>
-        <button className={styles.primary} disabled={busy}>{busy ? 'Entrando…' : 'Entrar nas avaliações'}</button>
+        <button className={styles.primary} disabled={busy}>{busy ? 'Entrando…' : 'Entrar na área da equipe'}</button>
       </form>
       <a href="/?recuperar=1">Recuperar senha pelo acesso principal</a>
     </>}

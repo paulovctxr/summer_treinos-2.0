@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { User } from "@supabase/supabase-js";
 import { PanelLoading } from "@/components/panel-loading";
 import { HomeAssessmentLink } from "@/components/home-assessment-link";
+import { StudentTrainingInbox } from "@/components/student-training-inbox";
 import { NutritionistCard } from "@/components/nutritionist-card";
 import { RestTimer, WorkoutClock } from "@/components/workout-clock";
 import { ExerciseDemonstration } from "@/components/exercise-demonstration";
@@ -839,6 +840,7 @@ function Dashboard({ user }: { user: User }) {
             </button>
           </div>}
           {activeTab === "Início" && <HomeAssessmentLink />}
+          {(activeTab === "Início" || activeTab === "Treinos") && <StudentTrainingInbox onStart={startWorkout} disabled={busy || !sessionReady || Boolean(active)} />}
           {!online && <p className="notice" role="alert">Você está sem internet. As alterações precisam de conexão para serem salvas.</p>}
           {trialActive && <section className="pro-trial-banner" aria-label="Teste grátis Summer PRO">
             <div><Crown size={18} aria-hidden="true" /><span><strong>Teste grátis PRO ativo</strong><small>{trialDaysLeft > 0 ? `${trialDaysLeft} ${trialDaysLeft === 1 ? "dia restante" : "dias restantes"}` : "Termina hoje"}. O acesso volta automaticamente ao plano grátis no vencimento.</small></span></div>

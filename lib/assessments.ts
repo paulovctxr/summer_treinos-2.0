@@ -44,6 +44,7 @@ export type Assessment = {
   id: string; student_id: string | null; student_name: string; registration: string; instructor: string;
   assessed_on: string; reassess_on: string | null; model: 'HOMENS' | 'MULHERES'; data: AssessmentData;
   status: 'draft' | 'published'; revision: number; updated_at: string; published_at: string | null;
+  viewed_at?: string | null;
 };
 export type AssessmentSummary = Omit<Assessment, 'data'>;
 export type AssessmentStudent = { id: string; name: string; registration: string };
