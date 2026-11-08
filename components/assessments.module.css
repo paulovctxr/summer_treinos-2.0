@@ -1,6 +1,10 @@
 .shell { max-width: 1120px; margin: 0 auto; padding: 24px; color: var(--ink, #222); min-width: 0; }
 .shell *, .card * { box-sizing: border-box; }
 .embedded { min-width: 0; }
+.dismissibleFeedback { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dismissibleFeedback > span { min-width: 0; overflow-wrap: anywhere; }
+.dismissFeedback { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #425236; font-size: 26px; cursor: pointer; }
+.dismissFeedback:hover { background: #dfebcf; }
 .teamTabs { display: flex; gap: 12px; margin: 0 0 30px; border-bottom: 1px solid #ddd9c9; padding-bottom: 14px; }
 .teamTabs button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; border: 1px solid #ddd7be; background: white; border-radius: 12px; padding: 12px 24px; font: inherit; font-weight: 700; cursor: pointer; }
 .teamTabs button[aria-pressed=true] { background: #fff1ad; border-color: #c7a624; color: #534000; }

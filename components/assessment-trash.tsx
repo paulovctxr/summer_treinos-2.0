@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/client';
 import { displayDate } from '@/lib/assessments';
 import { instructorKey } from '@/lib/assessment-folders';
 import styles from './assessments.module.css';
-type Removed={id:string;removed_at:string;student_name:string;registration:string;instructor:string;assessed_on:string;status:string};
+type Removed={id:string;removed_at:string;student_name:string;registration:string;instructor:string;assessed_on:string;status:string;can_purge?:boolean};
 export function AssessmentTrash({onClose,onRestored}:{onClose:()=>void;onRestored:()=>void}) {
   const [items,setItems]=useState<Removed[]>([]);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');const [error,setError]=useState('');
+  useEffect(()=>{if(!message)return;const timer=window.setTimeout(()=>setMessage(''),8000);return()=>window.clearTimeout(timer);},[message]);
   const load=useCallback(async()=>{
     setLoading(true);setError('');
     try{const all:Removed[]=[];for(let offset=0;offset<=100000;offset+=30){const {data,error}=await createClient().rpc('summer_assessment_trash',{p_offset:offset});if(error)throw error;all.push(...data);if(data.length<30)break;}setItems(all);}
@@ -23,12 +24,24 @@ export function AssessmentTrash({onClose,onRestored}:{onClose:()=>void;onRestore
       setMessage(`${data.restored} ${data.restored===1?'avaliação recuperada':'avaliações recuperadas'}. A pasta do professor foi recomposta.`);onRestored();await load();
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível recuperar.');}finally{setBusy(false);}
   }
+  async function purge(record:Removed){
+    if(busy)return;
+    const answer=window.prompt(`Excluir definitivamente a avaliação de ${record.student_name||'Aluno a confirmar'}, matrícula ${record.registration||'pendente'}, de ${displayDate(record.assessed_on)}? Não será possível recuperá-la. Digite EXCLUIR para confirmar.`);
+    if(answer?.trim().toUpperCase()!=='EXCLUIR')return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const {data,error}=await createClient().rpc('summer_assessment_purge',{p_id:record.id,p_removed_at:record.removed_at});
+      if(error)throw new Error(error.code==='40001'?'A lixeira mudou em outro acesso. Atualize a lista antes de excluir.':'Não foi possível excluir definitivamente. Tente novamente ou consulte a administração.');
+      if(data?.deleted!==1)throw new Error('Não foi possível confirmar a exclusão. Atualize a lista.');
+      setMessage('Avaliação excluída definitivamente.');await load();
+    }catch(e){setError(e instanceof Error?e.message:'Não foi possível excluir.');}finally{setBusy(false);}
+  }
   const groups=[...new Set(items.map(a=>instructorKey(a.instructor)))];
   return <section><div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={onClose}>← Voltar às avaliações</button><h2>Lixeira de avaliações</h2></div>
     <p>Recupere uma ficha ou todas as avaliações removidas de um professor. Publicações recuperadas voltam para a conta do aluno.</p>
-    {message&&<p className={styles.confirm} role="status">{message}</p>}{error&&<p className={styles.notice} role="alert">{error}<button className={styles.secondary} disabled={busy} onClick={()=>void load()}>Atualizar lista</button></p>}
+    {message&&<div className={`${styles.confirm} ${styles.dismissibleFeedback}`} role="status"><span>{message}</span><button type="button" className={styles.dismissFeedback} onClick={()=>setMessage('')} aria-label="Fechar mensagem"><span aria-hidden="true">×</span></button></div>}{error&&<p className={styles.notice} role="alert">{error}<button className={styles.secondary} disabled={busy} onClick={()=>void load()}>Atualizar lista</button></p>}
     {loading?<p role="status">Carregando lixeira…</p>:!error&&!items.length?<div className={styles.empty}>A lixeira está vazia.</div>:groups.map(key=>{const records=items.filter(a=>instructorKey(a.instructor)===key);return <section className={styles.card} key={key}><div className={styles.toolbar}><h3>{records[0].instructor||'Sem professor'}</h3><button className={styles.secondary} disabled={busy} onClick={()=>void restore(records)}>Recuperar pasta ({records.length})</button></div>
-      <div className={styles.list}>{records.map(a=><article className={styles.listCard} key={a.id}><span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h3>{a.student_name||'Aluno a confirmar'}</h3><p>Matrícula {a.registration||'pendente'} · Avaliação de {displayDate(a.assessed_on)}</p><p>Removida em {new Date(a.removed_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}</p><button className={styles.secondary} disabled={busy} onClick={()=>void restore([a])}>Recuperar avaliação</button></article>)}</div>
+      <div className={styles.list}>{records.map(a=><article className={styles.listCard} key={a.id}><span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h3>{a.student_name||'Aluno a confirmar'}</h3><p>Matrícula {a.registration||'pendente'} · Avaliação de {displayDate(a.assessed_on)}</p><p>Removida em {new Date(a.removed_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}</p><div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={()=>void restore([a])}>Recuperar avaliação</button>{a.can_purge&&<button className={styles.removeButton} disabled={busy} onClick={()=>void purge(a)}>Excluir definitivamente</button>}</div></article>)}</div>
     </section>;})}
   </section>;
 }

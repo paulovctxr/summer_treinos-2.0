@@ -18,6 +18,11 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
   const [folder,setFolder]=useState<string|null>(null);
   const [removal,setRemoval]=useState<AssessmentRemovalTarget|null>(null);
   const [feedback,setFeedback]=useState('');
+  useEffect(()=>{
+    if(!feedback)return;
+    const timer=window.setTimeout(()=>setFeedback(''),8000);
+    return()=>window.clearTimeout(timer);
+  },[feedback]);
   const [trash,setTrash]=useState(false);
   const requestVersion=useRef(0);
   const load=useCallback(async () => {
@@ -54,7 +59,7 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
     <div className={styles.heading}><div><p className={styles.eyebrow}>{teacher?'ESPAÇO DA EQUIPE':'SEU ACOMPANHAMENTO'}</p><h1>{teacher?'Avaliações físicas':'Minhas avaliações'}</h1><p>{teacher?'Avalie, acompanhe e entregue os resultados ao aluno.':'Suas medidas, orientações e evolução em um só lugar.'}</p></div>
     </div>
     {error && <div className={styles.notice} role="alert">{error}<button className={styles.secondary} onClick={()=>void load()}>Tentar novamente</button></div>}
-    {feedback && <p className={styles.confirm} role="status">{feedback}</p>}
+    {feedback && <div className={`${styles.confirm} ${styles.dismissibleFeedback}`} role="status"><span>{feedback}</span><button type="button" className={styles.dismissFeedback} onClick={()=>setFeedback('')} aria-label="Fechar mensagem"><span aria-hidden="true">×</span></button></div>}
     {teacher&&!selected&&!trash&&<div className={styles.toolbar}><button className={styles.secondary} onClick={()=>{setTrash(true);setFeedback('');}}>Lixeira</button></div>}
     {teacher&&trash?<AssessmentTrash onClose={()=>setTrash(false)} onRestored={()=>void load()}/>:<>
     {selected ? editing ? <AssessmentEditor initial={selected} onClose={a=>{setFolder(a.instructor);back();}} onPublished={a=>{setSelected(a);setFolder(a.instructor);setEditing(false);void load();}} /> : <>
