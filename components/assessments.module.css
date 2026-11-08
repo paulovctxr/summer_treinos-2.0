@@ -63,6 +63,21 @@
 .values dt { font-size: 12px; color: #67675f; margin-bottom: 7px; }
 .values dd { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
 .chart { display: block; width: 100%; height: auto; max-height: 220px; }
+.manageableCard { display: flex; flex-direction: column; overflow: hidden; min-width: 0; border: 1px solid #e2ddc5; border-radius: 18px; background: #fffef8; }
+.manageableCard > .folderCard, .manageableCard > .listCard { width: 100%; border: 0; border-radius: 0; flex: 1; }
+.manageableCard > button:focus-visible { outline-offset: -3px; }
+.removeButton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 12px; background: white; border: 1px solid #e8d1d1; border-radius: 10px; color: #9b333b; cursor: pointer; font: inherit; font-size: 12px; }
+.manageableCard > .removeButton { width: 100%; border: 0; border-top: 1px solid #eee6df; border-radius: 0; }
+.removeButton:hover { background: #fff2f2; }
+.modalOverlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0008; }
+.removalDialog { width: 100%; max-width: 540px; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 24px; background: white; border-radius: 18px; box-shadow: 0 16px 60px #0003; }
+.removalDialog p { line-height: 1.6; overflow-wrap: anywhere; }
+.removalHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.removalHeading h2 { font-size: 22px; margin: 8px 0; }
+.closeDialog { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; border: 1px solid #ddd; border-radius: 10px; background: white; cursor: pointer; }
+.removalConfirmation { display: grid; gap: 10px; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.removalConfirmation input { width: 100%; min-width: 0; min-height: 46px; padding: 12px; border: 1px solid #aaa; border-radius: 10px; font: inherit; font-size: 16px; }
+.removalDialog .primary { gap: 8px; }
 .folderHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 30px 0 22px; }
 .folderHeading h2 { margin: 14px 0 8px; overflow-wrap: anywhere; }
 .folderHeading p { color: #68685e; line-height: 1.6; }

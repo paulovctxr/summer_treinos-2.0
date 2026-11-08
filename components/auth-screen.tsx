@@ -103,9 +103,9 @@ export function AuthScreen({ initialMessage = '' }: { initialMessage?: string })
         <button className={`primary-button auth-submit ${styles.submit}`} disabled={loading}>{loading ? <LoaderCircle size={18} className={styles.spinner} aria-hidden="true" /> : null}{loading ? mode === 'login' ? 'ENTRANDO...' : mode === 'signup' ? 'CRIANDO CONTA...' : 'ENVIANDO LINK...' : mode === 'login' ? 'ENTRAR' : mode === 'signup' ? 'CRIAR CONTA' : 'ENVIAR LINK'}{!loading && <ArrowRight size={17} aria-hidden="true" />}</button>
       </form>
       {mode === 'login' && <button className="auth-switch" disabled={loading} onClick={() => switchMode('reset')}>Esqueci minha senha</button>}
-      {mode === 'login' && <a className="auth-switch" href="/professor">Acesso equipe</a>}
       <button className="auth-switch" disabled={loading} onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}>{mode === 'login' ? 'É sua primeira vez? Crie uma conta' : 'Voltar para entrar'}</button>
       <p className="auth-footnote">No computador, no Android ou no Safari do iPhone.</p>
+      {mode === 'login' && <a className={styles.teamAccess} href="/professor">Acesso equipe</a>}
     </section>
   </main>
 }

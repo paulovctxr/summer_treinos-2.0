@@ -88,6 +88,23 @@
   animation: spin 1s linear infinite;
 }
 
+.card .teamAccess {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 8px;
+  color: #737373;
+  font-size: 12px;
+  font-weight: 400;
+  text-align: center;
+  text-decoration: none;
+}
+.card .teamAccess:hover { color: #555; text-decoration: underline; }
+.card .teamAccess:focus-visible { outline: 2px solid #737373; outline-offset: 2px; border-radius: 6px; }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

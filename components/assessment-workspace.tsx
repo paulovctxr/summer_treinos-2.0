@@ -6,6 +6,7 @@ import { AssessmentReport } from './assessment-report';
 import { AssessmentEvolution } from './assessment-evolution';
 import { AssessmentFolders } from './assessment-folders';
 import { allAssessmentSummaries } from '@/lib/assessment-folders';
+import { AssessmentRemoval, type AssessmentRemovalTarget } from './assessment-removal';
 import styles from './assessments.module.css';
 
 export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) {
@@ -14,6 +15,8 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
   const [selected,setSelected]=useState<Assessment | null>(null); const [previous,setPrevious]=useState<Assessment | null>(null);
   const [busy,setBusy]=useState(false); const [editing,setEditing]=useState(false);
   const [folder,setFolder]=useState<string|null>(null);
+  const [removal,setRemoval]=useState<AssessmentRemovalTarget|null>(null);
+  const [feedback,setFeedback]=useState('');
   const requestVersion=useRef(0);
   const load=useCallback(async () => {
     const version=++requestVersion.current;
@@ -48,12 +51,14 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
     <div className={styles.heading}><div><p className={styles.eyebrow}>{teacher?'ESPAÇO DA EQUIPE':'SEU ACOMPANHAMENTO'}</p><h1>{teacher?'Avaliações físicas':'Minhas avaliações'}</h1><p>{teacher?'Avalie, acompanhe e entregue os resultados ao aluno.':'Suas medidas, orientações e evolução em um só lugar.'}</p></div>
     </div>
     {error && <div className={styles.notice} role="alert">{error}<button className={styles.secondary} onClick={()=>void load()}>Tentar novamente</button></div>}
+    {feedback && <p className={styles.confirm} role="status">{feedback}</p>}
     {selected ? editing ? <AssessmentEditor initial={selected} onClose={a=>{setFolder(a.instructor);back();}} onPublished={a=>{setSelected(a);setFolder(a.instructor);setEditing(false);void load();}} /> : <>
       <div className={styles.toolbar}><button className={styles.secondary} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
         {teacher && <button className={styles.secondary} onClick={()=>{const next=newAssessment();setSelected({...next,student_id:selected.student_id,student_name:selected.student_name,registration:selected.registration,model:selected.model,instructor:selected.instructor});setEditing(true);setPrevious(null);}}>Nova reavaliação</button>}
+        {teacher && <button className={styles.removeButton} disabled={busy} onClick={()=>{setFeedback('');setRemoval({kind:'assessment',name:selected.student_name,records:[selected]});}}>Remover avaliação</button>}
       </div><AssessmentReport assessment={selected} previous={previous} />
       {selected.student_id && <AssessmentEvolution studentId={selected.student_id} />}
-    </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} busy={busy}/> : <>
+    </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} onRemove={target=>{setFeedback('');setRemoval(target);}} busy={busy}/> : <>
       {loading ? <p role="status">Carregando avaliações…</p> : !items.length && !error ? <section className={styles.empty}><h2>Sua avaliação aparecerá aqui</h2><p>Depois da avaliação na academia, o professor publicará os resultados na sua conta. Não é necessário contratar o Pro para consultar.</p></section> :
         <div className={styles.list}>{items.map(a=><button className={styles.listCard} key={a.id} disabled={busy} onClick={()=>void open(a)}>
           <span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h2>Avaliação de {displayDate(a.assessed_on)}</h2>
@@ -62,6 +67,11 @@ export function AssessmentWorkspace({ teacher = false }: { teacher?: boolean }) 
         </button>)}</div>}
       <div className={styles.toolbar}>{offset>0 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(Math.max(0,offset-30))}>Anteriores</button>}{items.length===30 && <button className={styles.secondary} disabled={loading} onClick={()=>setOffset(offset+30)}>Mais avaliações</button>}</div>
     </>}
+    {teacher && removal && <AssessmentRemoval target={removal} onClose={()=>setRemoval(null)} onRefresh={()=>void load()} onRemoved={count=>{
+      if(removal.kind==='folder')setFolder(null);
+      setRemoval(null);setSelected(null);setEditing(false);setPrevious(null);
+      setFeedback(`${count} ${count===1?'avaliação removida':'avaliações removidas'}.`);void load();
+    }}/>}
   </main>;
 }
 
@@ -85,8 +95,8 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
     try {
       const {data,error}=await createClient().rpc('summer_assessment_save',{p_record:snapshot,p_revision:snapshot.revision,p_publish:publish});
       if(error) {
-        if(error.message.includes('Outra pessoa') || error.message.includes('preservada')) conflict.current=true;
-        throw new Error(conflict.current?'Este rascunho foi alterado em outro computador. Baixe seu Excel antes de sair e reabra a avaliação para conferir.':error.message.includes('matrícula')?'A matrícula mudou. Localize e confirme o aluno novamente.':'Não foi possível salvar. Confira a conexão e toque em Salvar rascunho.');
+        if(error.code==='40001' || error.message.includes('Outra pessoa') || error.message.includes('preservada')) conflict.current=true;
+        throw new Error(conflict.current?'Este rascunho foi alterado ou removido em outro acesso. Baixe seu Excel antes de sair e atualize a lista para conferir.':error.message.includes('matrícula')?'A matrícula mudou. Localize e confirme o aluno novamente.':'Não foi possível salvar. Confira a conexão e toque em Salvar rascunho.');
       }
       if(!mounted.current) return null;
       savedGeneration.current=version;

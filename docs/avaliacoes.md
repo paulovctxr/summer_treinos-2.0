@@ -3,7 +3,7 @@
 ## Ativação
 
 1. No Supabase do projeto, abra **SQL Editor → New query**.
-2. Execute o conteúdo completo de `supabase/migrations/20261107140000_physical_assessments.sql`. A migração é transacional e pode ser reaplicada sem apagar avaliações.
+2. Execute o conteúdo completo de `supabase/migrations/20261107140000_physical_assessments.sql` e depois `supabase/migrations/20261107180000_assessment_removal.sql`. Se as avaliações já estiverem ativas, execute apenas a segunda migração para habilitar a remoção. As migrações são transacionais e sua execução não remove avaliações.
 3. Na Vercel, mantenha `SUPABASE_SERVICE_ROLE_KEY` configurada como segredo do servidor. Ela já é usada pelo projeto; não crie uma variável `NEXT_PUBLIC_` para essa chave.
 4. Publique a versão do código contendo esta mudança.
 5. Entre com a conta de administrador em `/admin`. Em **Avaliações físicas → Configurar acesso da equipe**, informe um e-mail exclusivo, ainda não cadastrado no site, e uma senha de pelo menos 12 caracteres. O e-mail deve ser controlado pela academia para recuperar a senha.
@@ -20,6 +20,8 @@ Não é necessário dar permissão de administrador à conta da equipe. A config
 - Preencher as sete etapas. O rascunho é salvo após uma breve pausa na digitação, com indicação de sucesso ou erro. Nenhum dado da ficha é guardado no localStorage.
 - Conferir em **Visualizar como aluno** e publicar. O aluno encontra **Ver avaliação** logo no início da tela principal, além dos acessos no Perfil e no menu do computador, sem depender do plano Pro.
 - Publicações são preservadas no histórico. Para uma reavaliação, usar **Nova reavaliação**; os dados de identificação são mantidos, mas as novas medidas começam vazias.
+- **Remover avaliação** retira uma ficha da área da equipe e do aluno, após confirmação. **Remover pasta** mostra a quantidade total e quantas estão publicadas e exige digitar o nome do professor; remove todas as fichas confirmadas daquela pasta. Se alguma ficha mudou desde o carregamento, a ação é recusada e a lista precisa ser atualizada. Fichas novas criadas depois da conferência do banco são preservadas.
+- As remoções ficam em um registro privado de auditoria, sem acesso pelas contas do site. Não há opção de desfazer na interface. Um rascunho removido não pode ser recriado por uma sessão antiga. Somente a equipe autorizada e a administração podem remover fichas; as pastas continuam compartilhadas.
 - Em edição simultânea, o segundo salvamento de uma versão antiga é recusado. O professor pode baixar sua cópia Excel antes de reabrir o rascunho atualizado.
 - **Baixar Excel (.xlsx)** gera uma planilha real, editável, com seções e unidades. O arquivo usa `AAAA-MM-DD_Avaliacao_MATRICULA.xlsx`. O navegador determina a pasta; ative “Perguntar onde salvar cada arquivo” para selecionar a pasta do professor. Editar essa cópia não altera a avaliação no site.
 
