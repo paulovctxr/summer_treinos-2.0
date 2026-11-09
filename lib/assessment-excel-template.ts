@@ -1,9 +1,23 @@
 import ExcelJS from 'exceljs';
 import { ASSESSMENT_FIELDS, displayDate, type Assessment } from './assessments.ts';
+import { calculateBodyComposition } from './body-composition.ts';
 
 const C = { red:'FFBD1425', yellow:'FFFFE457', ink:'FF24241F', line:'FFE0E0D6', input:'FFFFFBEA', derived:'FFF2F3EF', white:'FFFFFFFF' };
 type Value = string | number | null;
 type PairField = [string, Value, string?];
+
+function bodyCompositionChartSvg(record: Assessment) {
+  const numberValue=(value:string|undefined)=>{if(!value?.trim())return null;const parsed=Number(value.replace(',','.'));return Number.isFinite(parsed)?parsed:null;};
+  const calculated=calculateBodyComposition(record.data,record.model,record.assessed_on);
+  const bodyFat=calculated.bodyFat??numberValue(record.data.body_fat);const fatMass=calculated.fatMass??numberValue(record.data.fat_mass);const leanMass=calculated.leanMass??numberValue(record.data.lean_mass);
+  const total=fatMass!==null&&leanMass!==null?fatMass+leanMass:null;
+  const fatPercent=total&&total>0&&fatMass!==null?fatMass/total*100:bodyFat;
+  if(fatPercent===null)return null;
+  const bounded=Math.max(0,Math.min(100,fatPercent));const circumference=2*Math.PI*46;const fatArc=circumference*bounded/100;
+  const fatLabel=bounded.toLocaleString('pt-BR',{maximumFractionDigits:1});const leanLabel=(100-bounded).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="190" viewBox="0 0 320 190"><rect width="320" height="190" rx="14" fill="#fffdf1"/><text x="18" y="26" font-family="Arial" font-size="16" font-weight="700" fill="#24241f">Composição corporal</text><circle cx="78" cy="105" r="46" fill="none" stroke="#b8d76c" stroke-width="28"/><circle cx="78" cy="105" r="46" fill="none" stroke="#bd1425" stroke-width="28" stroke-dasharray="${fatArc} ${circumference-fatArc}" transform="rotate(-90 78 105)"/><text x="78" y="101" text-anchor="middle" font-family="Arial" font-size="17" font-weight="700" fill="#24241f">${fatLabel}%</text><text x="78" y="118" text-anchor="middle" font-family="Arial" font-size="10" fill="#67675f">gordura</text><circle cx="166" cy="83" r="6" fill="#bd1425"/><text x="180" y="88" font-family="Arial" font-size="13" fill="#24241f">Gordura ${fatLabel}%</text><circle cx="166" cy="111" r="6" fill="#b8d76c"/><text x="180" y="116" font-family="Arial" font-size="13" fill="#24241f">Massa magra ${leanLabel}%</text>${bodyFat!==null?`<text x="166" y="145" font-family="Arial" font-size="11" fill="#67675f">Gordura atual: ${bodyFat.toLocaleString('pt-BR')}%</text>`:''}</svg>`;
+  const bytes=new TextEncoder().encode(svg);let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return `data:image/svg+xml;base64,${btoa(binary)}`;
+}
 
 /** Same report sections and templates as the academy XLS, without its sample data or unverified clinical formulas. */
 export function buildAssessmentWorkbook(a: Assessment, logoBase64?: string) {
@@ -134,6 +148,8 @@ export function buildAssessmentWorkbook(a: Assessment, logoBase64?: string) {
     pair(measure('chest','Tórax'),measure('abdomen'));pair(measure('hip'));
     for(const [key,label] of limbs)pair(measure(`${key}_right`,`${label} direito(a)`),measure(`${key}_left`,`${label} esquerdo(a)`));
     gap();line('Consulte a anamnese, a análise postural e as orientações anteriores. As medidas do lado direito e esquerdo ficam juntas para facilitar a comparação.',C.derived,10);
+    const compositionChart=filled?bodyCompositionChartSvg(record):null;
+    if(compositionChart){const chartImage=book.addImage({base64:compositionChart,extension:'svg' as unknown as 'png'});sheet.addImage(chartImage,{tl:{col:0,row:row-1} as ExcelJS.Anchor,ext:{width:320,height:190}});for(let i=0;i<9;i++)sheet.getRow(row++).height=24;}
     gap();band('ORIENTAÇÕES E OBSERVAÇÕES FINAIS');block('notes','Observações / recomendações do professor');
     const extra=ASSESSMENT_FIELDS.filter(f=>!written.has(f.key)&&record.data[f.key]);
     if(extra.length){band('INFORMAÇÕES COMPLEMENTARES');for(const f of extra)block(f.key);}

@@ -110,7 +110,8 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
       const {data,error}=await createClient().rpc('summer_assessment_save',{p_record:snapshot,p_revision:snapshot.revision,p_publish:publish});
       if(error) {
         if(error.code==='40001' || error.message.includes('Outra pessoa') || error.message.includes('preservada')) conflict.current=true;
-        throw new Error(conflict.current?'Este rascunho foi alterado ou removido em outro acesso. Baixe seu Excel antes de sair e atualize a lista para conferir.':error.message.includes('matrícula')?'A matrícula mudou. Localize e confirme o aluno novamente.':'Não foi possível salvar. Confira a conexão e toque em Salvar rascunho.');
+        const unlinkedPublish=publish&&!snapshot.student_id&&/Confirme o aluno|não encontrado|não disponível/i.test(error.message);
+        throw new Error(conflict.current?'Este rascunho foi alterado ou removido em outro acesso. Baixe seu Excel antes de sair e atualize a lista para conferir.':unlinkedPublish?'A publicação sem login ainda não está ativada no banco. Execute a migração 20261109150000_unlinked_assessment_publication.sql no Supabase e tente novamente.':error.message.includes('matrícula')?'A matrícula mudou. Localize e confirme o aluno novamente.':'Não foi possível salvar. Confira a conexão e toque em Salvar rascunho.');
       }
       if(!mounted.current) return null;
       savedGeneration.current=version;

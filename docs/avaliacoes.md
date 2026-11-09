@@ -3,7 +3,7 @@
 ## Ativação
 
 1. No Supabase do projeto, abra **SQL Editor → New query**.
-2. Execute, nesta ordem, `supabase/migrations/20261107140000_physical_assessments.sql`, `supabase/migrations/20261107180000_assessment_removal.sql` e `supabase/migrations/20261108120000_team_workspace.sql`. Se as avaliações e remoções já estiverem ativas, execute apenas a última para habilitar avisos, recuperação e treinos. As migrações são transacionais e sua execução não remove avaliações.
+2. Execute, nesta ordem, `supabase/migrations/20261107140000_physical_assessments.sql`, `supabase/migrations/20261107180000_assessment_removal.sql`, `supabase/migrations/20261108120000_team_workspace.sql` e `supabase/migrations/20261109150000_unlinked_assessment_publication.sql`. Se as avaliações já estiverem ativas, execute apenas as migrações que ainda não foram aplicadas. A última habilita publicação na pasta do professor antes do cadastro do aluno. As migrações são transacionais e sua execução não remove avaliações.
 3. Na Vercel, mantenha `SUPABASE_SERVICE_ROLE_KEY` configurada como segredo do servidor. Ela já é usada pelo projeto; não crie uma variável `NEXT_PUBLIC_` para essa chave.
 4. Publique a versão do código contendo esta mudança.
 5. Entre com a conta de administrador em `/admin`. Em **Avaliações físicas → Configurar acesso da equipe**, informe um e-mail exclusivo, ainda não cadastrado no site, e uma senha de pelo menos 12 caracteres. O e-mail deve ser controlado pela academia para recuperar a senha.

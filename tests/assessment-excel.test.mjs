@@ -7,7 +7,7 @@ import { assessmentWorkbook } from '../lib/assessment-excel.ts';
 import { newAssessment, ASSESSMENT_FIELDS } from '../lib/assessments.ts';
 
 function cellWith(sheet,text){let found;sheet.eachRow(row=>row.eachCell(cell=>{if(!cell.isMerged||cell.address===cell.master.address)if(cell.value===text)found=cell;}));return found;}
-const data={weight:'65.5',height:'170',skinfold_triceps:'18',skinfold_suprailiac:'13',skinfold_thigh:'27',notes:'=HYPERLINK("https://example.test","texto")'};
+const data={birth_date:'1990-01-01',weight:'65.5',height:'170',skinfold_triceps:'18',skinfold_suprailiac:'13',skinfold_thigh:'27',notes:'=HYPERLINK("https://example.test","texto")'};
 const example=()=>({...newAssessment(),model:'MULHERES',student_name:'Aluno fictício',registration:'0012',instructor:'Professor Teste',data});
 
 test('Excel keeps the original model tabs, section order and paired measurements, without leaking data to the blank template',async()=>{
@@ -36,6 +36,7 @@ test('Excel keeps the original model tabs, section order and paired measurements
   const drawing=await zip.file('xl/drawings/drawing1.xml').async('string');
   assert.match(drawing,/<xdr:twoCellAnchor editAs="oneCell">/);
   assert.doesNotMatch(drawing,/<xdr:oneCellAnchor editAs=/);
+  assert.ok(zip.file('xl/media/image2.svg'),'the filled assessment includes the composition pie chart');
   assert.equal(sheet.views[0].showGridLines,false);
 });
 
