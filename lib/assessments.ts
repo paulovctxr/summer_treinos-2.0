@@ -56,7 +56,7 @@ export function assessmentIssues(a: Assessment, publishing = false): string[] {
   if (a.reassess_on && (!validDate(a.reassess_on) || a.reassess_on < a.assessed_on)) errors.push('A reavaliação deve ser uma data válida, posterior ou igual à avaliação.');
   if (a.registration && !/^\d{4}$/.test(a.registration)) errors.push('A matrícula deve ter quatro números.');
   if (publishing) {
-    if (!a.student_id) errors.push('Localize e confirme o aluno pela matrícula.');
+    if (!a.student_id && !/^\d{4}$/.test(a.registration)) errors.push('Informe a matrícula de quatro números para publicar na pasta do professor.');
     if (!a.student_name.trim() || !a.instructor.trim()) errors.push('Preencha o nome do aluno e o professor responsável.');
     if (!Object.values(a.data).some(v => v.trim())) errors.push('Preencha ao menos um campo da avaliação.');
   }

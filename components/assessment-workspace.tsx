@@ -47,7 +47,7 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
       const {data,error}=await createClient().rpc('summer_assessment_get',{p_id:item.id}); if(error) throw error;
       setSelected(data); setEditing(teacher && data.status==='draft');
       if(!teacher){const seen=await createClient().rpc('summer_assessment_seen',{p_id:item.id});if(!seen.error){setSelected({...data,viewed_at:seen.data});setItems(current=>current.map(a=>a.id===item.id?{...a,viewed_at:seen.data}:a));}}
-      const older=items.find(other=>other.student_id===item.student_id && other.status==='published' && other.assessed_on<item.assessed_on);
+      const older=item.student_id ? items.find(other=>other.student_id===item.student_id && other.status==='published' && other.assessed_on<item.assessed_on) : undefined;
       if(older) { const result=await createClient().rpc('summer_assessment_get',{p_id:older.id}); if(!result.error) setPrevious(result.data); }
     } catch { setError('Não foi possível abrir esta avaliação.'); } finally { setBusy(false); }
   }
@@ -145,7 +145,8 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
     onClose(lastSaved.current);
   }
   async function publish(){
-    if(!confirm(`Publicar esta avaliação para ${current.current.student_name}, matrícula ${current.current.registration}? Depois de publicada, ela será preservada no histórico.`))return;
+    const destination=current.current.student_id?'na conta do aluno':'na pasta do professor, aguardando o cadastro do aluno';
+    if(!confirm(`Publicar esta avaliação ${destination} para ${current.current.student_name}, matrícula ${current.current.registration}? Depois de publicada, ela será preservada no histórico.`))return;
     setPublishing(true);const result=await save(true);setPublishing(false);if(result)onPublished(result);
   }
   const titles=['Identificação',...ASSESSMENT_SECTIONS.map(s=>s.title)];
@@ -162,7 +163,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
     {preview ? <AssessmentReport assessment={record} /> : <fieldset className={styles.formCard} disabled={publishing}>
       <legend>{titles[step]}</legend>
       {step===0 ? <>
-        <p className={styles.note}>Confirme o aluno pela matrícula antes de publicar. O rascunho pode ser preenchido antes do cadastro.</p>
+        <p className={styles.note}>Se o aluno já tiver login, localize e confirme a matrícula para enviar a avaliação diretamente. Se ainda não tiver cadastro, preencha nome e matrícula para publicar na pasta do professor; ela ficará disponível ao aluno quando a conta for criada.</p>
         <div className={styles.search}><label>Matrícula do aluno<input inputMode="numeric" maxLength={4} value={record.registration} onChange={e=>{update({registration:e.target.value.replace(/\D/g,''),student_id:null});setCandidate(null);setLookupMessage('');}} /></label><button type="button" className={styles.secondary} disabled={finding} onClick={()=>void findStudent()}>{finding?'Buscando…':'Localizar aluno'}</button></div>
         {candidate && !record.student_id && <div className={styles.confirm}><p><strong>{candidate.name}</strong> · Matrícula {candidate.registration}</p><button className={styles.primary} onClick={()=>{update({student_id:candidate.id,student_name:candidate.name});setCandidate(null);}}>Confirmar este aluno</button></div>}
         {lookupMessage && <p role="status">{lookupMessage}</p>}{record.student_id && <p className={styles.confirm}>✓ Aluno confirmado: {record.student_name} · {record.registration}</p>}
@@ -183,7 +184,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
       {step<titles.length-1 && !preview && <button className={styles.primary} onClick={()=>setStep(step+1)}>Próxima etapa →</button>}
       <button className={styles.secondary} onClick={()=>setPreview(!preview)}>{preview?'Voltar ao preenchimento':'Visualizar como aluno'}</button>
     </div>
-    <div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict.current} onClick={()=>void save()}>Salvar rascunho</button><ExcelDownload key={record.id} disabled={publishing} createFile={async()=>{const snapshot=current.current;const issues=assessmentIssues(snapshot);if(issues.length)throw new Error(issues.join(' '));const {createAssessmentExcelFile}=await import('@/lib/assessment-excel');return createAssessmentExcelFile(snapshot);}}/><button className={styles.primary} disabled={busy||publishing||conflict.current} onClick={()=>void publish()}>Publicar para o aluno</button></div>
+    <div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict.current} onClick={()=>void save()}>Salvar rascunho</button><ExcelDownload key={record.id} disabled={publishing} createFile={async()=>{const snapshot=current.current;const issues=assessmentIssues(snapshot);if(issues.length)throw new Error(issues.join(' '));const {createAssessmentExcelFile}=await import('@/lib/assessment-excel');return createAssessmentExcelFile(snapshot);}}/><button className={styles.primary} disabled={busy||publishing||conflict.current} onClick={()=>void publish()}>{record.student_id?'Publicar para o aluno':'Publicar na pasta do professor'}</button></div>
     <p className={styles.note}>O Excel é uma cópia editável. Salve o arquivo na pasta do professor no computador; alterações feitas nele não modificam a avaliação publicada no site.</p>
   </section>;
 }
