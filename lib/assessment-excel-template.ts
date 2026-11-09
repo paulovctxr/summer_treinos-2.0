@@ -119,34 +119,22 @@ export function buildAssessmentWorkbook(a: Assessment, logoBase64?: string) {
     merged(row,7,12,'Resultados de composição corporal informados pelo professor.',C.white,false,10);sheet.getRow(row++).height=38;
     for(const key of ['skinfold_chest','skinfold_abdomen','skinfold_triceps','skinfold_suprailiac'].filter(k=>!folds.includes(k)&&record.data[k]))pair(measure(key));
     gap();block('body_protocol','Protocolo de composição corporal utilizado');
-    pair(measure('systolic','PA sistólica'),measure('diastolic','PA diastólica'));pair(measure('resting_hr','FC de repouso'));gap();
-    band('05  CIRCUNFERÊNCIAS');
+    merged(row,1,6,'CIRCUNFERÊNCIAS',C.derived,true);merged(row,7,12,'MEDIDAS DIREITA / ESQUERDA',C.derived,true);sheet.getRow(row++).height=28;
     pair(measure('chest','Tórax normal'),measure('abdomen'));pair(measure('hip'));
     const limbs=[['arm','Braço'],['forearm','Antebraço'],['upper_thigh','Coxa superior'],['mid_thigh','Coxa média'],['lower_thigh','Coxa inferior'],['calf','Perna']];
     for(const [key,label] of limbs)pair(measure(`${key}_right`,`${label} direito(a)`),measure(`${key}_left`,`${label} esquerdo(a)`));
-    gap();block('training','Sugestão de treino');block('aerobic_guidance','Sugestão de treinamento aeróbico');
+    gap();block('training','Sugestão de treino');
 
-    band('06  AVALIAÇÃO FUNCIONAL — RESUMO',true);
+    band('05  AVALIAÇÃO FUNCIONAL — RESUMO',true);
     full('Nome',record.student_name||null);
     pair(['Matrícula',record.registration||null],['Avaliação',record.assessed_on?displayDate(record.assessed_on):null]);
     full('Professor responsável',record.instructor||null);
     pair(measure('weight','Peso atual'),measure('height'));pair(measure('body_fat','Gordura atual'),measure('target_fat','Gordura alvo'));
     pair(measure('fat_mass','Peso gordo'),measure('lean_mass','Peso magro'));
     for(let i=0;i<folds.length;i++)pair(measure(folds[i]),i===0?measure('target_weight','Peso alvo'):undefined);
-    pair(measure('chest','Tórax'),measure('abdomen'));pair(measure('hip'),measure('resting_hr','FC de repouso'));
+    pair(measure('chest','Tórax'),measure('abdomen'));pair(measure('hip'));
     for(const [key,label] of limbs)pair(measure(`${key}_right`,`${label} direito(a)`),measure(`${key}_left`,`${label} esquerdo(a)`));
-    pair(measure('systolic','PA sistólica'),measure('diastolic','PA diastólica'));
-    gap();line('Consulte a anamnese, a análise postural e as orientações nas seções anteriores. Este resumo acompanha as alterações nas células de medidas da ficha.',C.derived,10);
-
-    band('07  CONSUMO MÁXIMO DE OXIGÊNIO (VO₂ MÁX.)',true);
-    line('CAPACIDADE AERÓBIA · Registro do teste realizado pelo professor',C.derived);
-    block('aerobic_protocol','Teste / protocolo utilizado (ex.: teste submáximo de Astrand)');
-    pair(measure('resting_hr','FC em repouso'),measure('load_watts','Carga utilizada'));
-    pair(measure('penultimate_hr','FC penúltimo minuto'),measure('last_hr','FC último minuto'));
-    gap();merged(row,1,6,'PRESSÃO ANTES DO TESTE',C.derived,true);merged(row,7,12,'PRESSÃO APÓS O TESTE',C.derived,true);sheet.getRow(row++).height=28;
-    pair(measure('systolic','PAS'),measure('post_systolic','PAS'));pair(measure('diastolic','PAD'),measure('post_diastolic','PAD'));
-    pair(measure('effort','Percepção de esforço'),measure('vo2','VO₂ máx. informado'));
-    gap();line('O resultado do teste e a prescrição de intensidade devem ser conferidos pelo professor. Este arquivo não calcula automaticamente protocolos clínicos.',C.derived,10);
+    gap();line('Consulte a anamnese, a análise postural e as orientações anteriores. As medidas do lado direito e esquerdo ficam juntas para facilitar a comparação.',C.derived,10);
     gap();band('ORIENTAÇÕES E OBSERVAÇÕES FINAIS');block('notes','Observações / recomendações do professor');
     const extra=ASSESSMENT_FIELDS.filter(f=>!written.has(f.key)&&record.data[f.key]);
     if(extra.length){band('INFORMAÇÕES COMPLEMENTARES');for(const f of extra)block(f.key);}

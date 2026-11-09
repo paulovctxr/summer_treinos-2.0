@@ -1,5 +1,6 @@
 'use client';
 import { ASSESSMENT_SECTIONS, displayDate, type Assessment } from '@/lib/assessments';
+import { BodyFatChart } from './body-fat-chart';
 import styles from './assessments.module.css';
 export function AssessmentReport({ assessment: a, previous }: { assessment: Assessment; previous?: Assessment | null }) {
   const highlights = [{ key:'weight',label:'Peso',unit:'kg' },{ key:'height',label:'Altura',unit:'cm' },{ key:'body_fat',label:'Gordura corporal',unit:'%' },{ key:'lean_mass',label:'Massa magra',unit:'kg' }];
@@ -16,6 +17,7 @@ export function AssessmentReport({ assessment: a, previous }: { assessment: Asse
         {delta!==null && Number.isFinite(delta) && <small>{delta>0?'+':''}{delta.toLocaleString('pt-BR',{maximumFractionDigits:2})} {f.key==='body_fat'?'p.p.':f.unit} desde {displayDate(previous!.assessed_on)}</small>}
       </div>;
     })}</div>
+    <BodyFatChart data={a.data} showEmpty={false} />
     <p className={styles.note}>Resultados e orientações registrados pelo professor. Campos sem preenchimento aparecem como “Não informado”.</p>
     {ASSESSMENT_SECTIONS.map(section => <details className={styles.section} key={section.title} open={section.title === 'Orientações do professor'}>
       <summary>{section.title}</summary><dl className={styles.values}>{section.fields.map(f => <div key={f.key}><dt>{f.label}</dt><dd>{a.data[f.key] ? f.type==='date' ? displayDate(a.data[f.key]) : `${a.data[f.key]}${f.unit ? ` ${f.unit}`:''}` : 'Não informado'}</dd></div>)}</dl>

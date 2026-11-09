@@ -17,8 +17,9 @@ test('Excel keeps the original model tabs, section order and paired measurements
   const book=new ExcelJS.Workbook();await book.xlsx.load(bytes);
   assert.deepEqual(book.worksheets.map(s=>s.name),['HOMENS','MULHERES']);assert.equal(book.views[0].activeTab,1);
   const sheet=book.getWorksheet('MULHERES'),blank=book.getWorksheet('HOMENS');
-  const sections=['01  DADOS CADASTRAIS','02  ANAMNESE','03  ANÁLISE POSTURAL','04  VALORES ANTROPOMÉTRICOS','05  CIRCUNFERÊNCIAS','06  AVALIAÇÃO FUNCIONAL — RESUMO','07  CONSUMO MÁXIMO DE OXIGÊNIO (VO₂ MÁX.)'];
+  const sections=['01  DADOS CADASTRAIS','02  ANAMNESE','03  ANÁLISE POSTURAL','04  VALORES ANTROPOMÉTRICOS','05  AVALIAÇÃO FUNCIONAL — RESUMO'];
   const rows=sections.map(title=>cellWith(sheet,title).row);assert.deepEqual(rows,[...rows].sort((a,b)=>a-b));
+  assert.equal(cellWith(sheet,'AVALIAÇÃO CARDIOVASCULAR'),undefined);assert.equal(cellWith(sheet,'CONSUMO MÁXIMO DE OXIGÊNIO (VO₂ MÁX.)'),undefined);
   assert.ok(cellWith(sheet,'0012'));assert.ok(cellWith(sheet,'Aluno fictício'));
   assert.equal(cellWith(blank,'Aluno fictício'),undefined);assert.equal(cellWith(blank,'Professor Teste'),undefined);assert.equal(cellWith(blank,'0012'),undefined);
   const anthropometry=rows[3];assert.equal(sheet.getCell(anthropometry+2,5).value,65.5);
@@ -31,7 +32,7 @@ test('Excel keeps the original model tabs, section order and paired measurements
   // ExcelJS serializes page breaks but does not restore them on load; inspect the actual XLSX XML.
   const JSZip=createRequire(import.meta.resolve('exceljs'))('jszip');
   const zip=await JSZip.loadAsync(bytes);const xml=await zip.file('xl/worksheets/sheet2.xml').async('string');
-  assert.match(xml,/<rowBreaks count="5"/);
+  assert.match(xml,/<rowBreaks count="4"/);
   const drawing=await zip.file('xl/drawings/drawing1.xml').async('string');
   assert.match(drawing,/<xdr:twoCellAnchor editAs="oneCell">/);
   assert.doesNotMatch(drawing,/<xdr:oneCellAnchor editAs=/);

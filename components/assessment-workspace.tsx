@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ASSESSMENT_SECTIONS, assessmentIssues, displayDate, localDate, newAssessment, type Assessment, type AssessmentSummary, type AssessmentStudent } from '@/lib/assessments';
 import { AssessmentReport } from './assessment-report';
 import { AssessmentEvolution } from './assessment-evolution';
+import { BodyFatChart } from './body-fat-chart';
 import { AssessmentFolders } from './assessment-folders';
 import { allAssessmentSummaries } from '@/lib/assessment-folders';
 import { AssessmentRemoval, type AssessmentRemovalTarget } from './assessment-removal';
@@ -167,7 +168,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
       </> : <><p className={styles.note}>Preencha somente o que foi avaliado. Resultados de protocolos devem ser conferidos e informados pelo professor.</p><div className={styles.grid}>{ASSESSMENT_SECTIONS[step-1].fields.map(f=><label key={f.key} className={f.type==='text'?styles.wide:''}>{f.label}{f.unit?` (${f.unit})`:''}
         {f.type==='text'?<textarea rows={3} maxLength={2000} value={record.data[f.key] || ''} onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />:
           <input type={f.type==='date'?'date':'number'} inputMode={f.type==='number'?'decimal':undefined} step={f.type==='number'?'any':undefined} min={f.type==='date'?'1900-01-01':f.min} max={f.type==='date'?record.assessed_on:f.max} value={record.data[f.key] || ''} placeholder="Não informado" onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />}
-      </label>)}</div></>}
+      </label>)}</div>{step===2 && <BodyFatChart data={record.data} />}</>}
     </fieldset>}
     <div className={styles.toolbar}>
       {step>0 && !preview && <button className={styles.secondary} onClick={()=>setStep(step-1)}>← Etapa anterior</button>}

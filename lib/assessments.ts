@@ -20,22 +20,12 @@ export const ASSESSMENT_SECTIONS: AssessmentSection[] = [
     number('body_fat', 'Gordura corporal informada pelo professor', '%', 1, 75), number('target_fat', 'Meta de gordura corporal', '%', 1, 75),
     number('fat_mass', 'Massa de gordura informada', 'kg', 0, 300), number('lean_mass', 'Massa magra informada', 'kg', 1, 250),
     number('target_weight', 'Meta de peso definida pelo professor', 'kg', 15, 400),
-  ] },
-  { title: 'Circunferências', fields: [
     number('chest', 'Tórax', 'cm', 10, 250), number('abdomen', 'Abdome', 'cm', 10, 250), number('hip', 'Quadril', 'cm', 10, 250),
     ...[['arm','Braço'], ['forearm','Antebraço'], ['upper_thigh','Coxa superior'], ['mid_thigh','Coxa média'], ['lower_thigh','Coxa inferior'], ['calf','Perna']].flatMap(([key,label]) => [
       number(`${key}_right`, `${label} direito(a)`, 'cm', 5, 150), number(`${key}_left`, `${label} esquerdo(a)`, 'cm', 5, 150),
     ]),
   ] },
   { title: 'Análise postural', fields: [text('posture_front','Vista anterior'), text('posture_side','Vista lateral'), text('posture_back','Vista posterior'), text('posture_notes','Observações posturais')] },
-  { title: 'Avaliação cardiovascular', fields: [
-    number('systolic','Pressão sistólica em repouso','mmHg',50,260), number('diastolic','Pressão diastólica em repouso','mmHg',30,180),
-    number('resting_hr','Frequência cardíaca em repouso','bpm',25,240), text('aerobic_protocol','Teste / protocolo aeróbico utilizado'),
-    number('penultimate_hr','FC no penúltimo minuto','bpm',25,240), number('last_hr','FC no último minuto','bpm',25,240),
-    number('post_systolic','Pressão sistólica após o teste','mmHg',50,260), number('post_diastolic','Pressão diastólica após o teste','mmHg',30,180),
-    number('load_watts','Carga utilizada','W',1,1000), number('effort','Percepção de esforço (Borg 6–20)','',6,20),
-    number('vo2','VO₂ máximo informado pelo professor','ml/kg/min',1,120), text('aerobic_guidance','Orientações para treinamento aeróbico'),
-  ] },
   { title: 'Orientações do professor', fields: [text('training','Sugestão de treino'), text('notes','Observações e recomendações')] },
 ];
 export const ASSESSMENT_FIELDS = ASSESSMENT_SECTIONS.flatMap(section => section.fields);
