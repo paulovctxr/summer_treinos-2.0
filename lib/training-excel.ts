@@ -5,7 +5,7 @@ import { trainingExerciseCells } from './training-paper.ts';
 const PT_PER_MM=72/25.4;
 const HALF_HEIGHT=148.5*PT_PER_MM;
 const BORDER:Partial<ExcelJS.Borders>={top:{style:'thin',color:{argb:'FF777777'}},bottom:{style:'thin',color:{argb:'FF777777'}},left:{style:'thin',color:{argb:'FF777777'}},right:{style:'thin',color:{argb:'FF777777'}}};
-const COLUMN_MM=[22,23,43,15.7,23.5,15.6,4,18,31];
+const COLUMN_MM=[27,22,39,15.7,23.5,15.6,5,22,26.1];
 const TABLE_RANGES=[[1,3],[4,4],[5,5],[6,7],[8,9]];
 type PaperRow={values:string[];height:number};
 
@@ -15,7 +15,7 @@ function lines(value:string,widthMm:number,font=8){
 }
 
 function writeTrainingSheet(book:ExcelJS.Workbook,plan:TrainingPlan,workoutCode:string,rows:PaperRow[],logo:number|undefined,name:string){
-  const sheet=book.addWorksheet(name,{views:[{state:'normal',showGridLines:false,zoomScale:90}],pageSetup:{paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:1,horizontalCentered:true,margins:{left:7/25.4,right:7/25.4,top:6/25.4,bottom:6/25.4,header:0,footer:0}}});
+  const sheet=book.addWorksheet(name,{views:[{state:'normal',showGridLines:false,zoomScale:110}],pageSetup:{paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:1,horizontalCentered:true,margins:{left:7/25.4,right:7/25.4,top:6/25.4,bottom:6/25.4,header:0,footer:0}}});
   sheet.columns=COLUMN_MM.map(mm=>({width:Math.max(4,Math.round((mm*PT_PER_MM-5)/5.4*10)/10)}));
   const date=(value:string|null)=>value?value.split('-').reverse().join('/'):' ';let row=1;let used=0;
   const bodyBudget=HALF_HEIGHT-18;
@@ -24,7 +24,7 @@ function writeTrainingSheet(book:ExcelJS.Workbook,plan:TrainingPlan,workoutCode:
     if(to>from)sheet.mergeCells(row,from,row,to);
     const target=sheet.getCell(row,from);target.value=value;target.font={name:'Arial',size,bold,color:{argb:'FF111111'}};target.alignment={vertical:'middle',horizontal:align,wrapText:true,indent:align==='left'?1:0};target.fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}};if(border)target.border=BORDER;return target;
   };
-  cell(1,2,logo!==undefined?'':'SUMMER FIT',12,true);cell(3,9,'PROGRAMA SUMMER FIT'+(plan.status==='draft'?' · RASCUNHO':''),12,true,'FFFFFFFF','center');height(34);
+  cell(1,2,logo!==undefined?'':'SUMMER FIT',14,true);cell(3,9,'PROGRAMA SUMMER FIT'+(plan.status==='draft'?' · RASCUNHO':''),14,true,'FFFFFFFF','center');height(40);
   if(logo!==undefined)sheet.addImage(logo,{tl:{col:.18,row:.16} as ExcelJS.Anchor,ext:{width:150,height:42}});
   const identity=[
     ['', '', 'REAVALIAÇÃO:', date(plan.reassess_on)],
@@ -34,13 +34,13 @@ function writeTrainingSheet(book:ExcelJS.Workbook,plan:TrainingPlan,workoutCode:
     ['ZONA ALVO:', plan.target_zone||' ', 'TREINO:', workoutCode],
   ];
   for(const [index,values] of identity.entries()){
-    const treino=index===4;cell(1,1,values[0],7,true,'FFEEEEEE');cell(2,6,values[1],8,false,'FFFFFFFF');cell(7,8,values[2],7,true,treino?'FFFFFF00':'FFEEEEEE');cell(9,9,values[3],8,false,treino?'FFFFFF00':'FFFFFFFF');
-    height(Math.max(15,...values.map((v,i)=>lines(v,[22,121,22,31][i],i%2?8:7).length*10+4)));
+    const treino=index===4;cell(1,1,values[0],8,true,'FFEEEEEE');cell(2,6,values[1],9,true,'FFFFFFFF');cell(7,8,values[2],8,true,treino?'FFFFFF00':'FFEEEEEE');cell(9,9,values[3],9,true,treino?'FFFFFF00':'FFFFFFFF');
+    height(Math.max(18,...values.map((v,i)=>lines(v,[27,115,27,26][i],i%2?9:8).length*12+6)));
   }
-  [['EXERCÍCIOS',0],['SÉRIE',1],['REPET.',2],['CARGA',3],['OBSERVAÇÃO',4]].forEach(([title,index])=>{const range=TABLE_RANGES[Number(index)];cell(range[0],range[1],String(title),7,true,'FFEEEEEE','center');});height(20);
-  for(const item of rows){item.values.forEach((value,index)=>cell(TABLE_RANGES[index][0],TABLE_RANGES[index][1],value,8,false,'FFFFFFFF',index>0&&index<4?'center':'left'));height(item.height);}
-  while(used+18<bodyBudget){for(let index=0;index<5;index++)cell(TABLE_RANGES[index][0],TABLE_RANGES[index][1],' ',8,false);height(Math.min(18,bodyBudget-used-10));if(bodyBudget-used<18)break;}
-  cell(1,7,'Siga as orientações do professor · Summer Fit',6.5,false,'FFFFFFFF','left',false);cell(8,9,'1 / 1',6.5,false,'FFFFFFFF','center',false);height(10);
+  [['EXERCÍCIOS',0],['SÉRIE',1],['REPET.',2],['CARGA',3],['OBSERVAÇÃO',4]].forEach(([title,index])=>{const range=TABLE_RANGES[Number(index)];cell(range[0],range[1],String(title),9,true,'FFEEEEEE','center');});height(26);
+  for(const item of rows){item.values.forEach((value,index)=>cell(TABLE_RANGES[index][0],TABLE_RANGES[index][1],value,9,true,'FFFFFFFF',index>0&&index<4?'center':'left'));height(item.height);}
+  while(used+22<bodyBudget){for(let index=0;index<5;index++)cell(TABLE_RANGES[index][0],TABLE_RANGES[index][1],' ',9,true);height(Math.min(22,bodyBudget-used-10));if(bodyBudget-used<22)break;}
+  cell(1,7,'Siga as orientações do professor · Summer Fit',7,false,'FFFFFFFF','left',false);cell(8,9,'1 / 1',7,false,'FFFFFFFF','center',false);height(10);
   sheet.pageSetup.printArea='A1:I'+(row-1);sheet.getCell('A1').note='Uma ficha por aba. Edite as células da primeira via e imprima em A4 retrato, escala 100%. Não há uma segunda ficha duplicada.';
 }
 
@@ -53,9 +53,9 @@ export function trainingWorkbook(plan:TrainingPlan,options:{logoBase64?:string}=
     const values:PaperRow[]=[];
     for(const exercise of workout.exercises){
       const cells=trainingExerciseCells(exercise);const wrapped=cells.map((value,i)=>lines(value,[88.2,15.7,23.5,19.6,49][i]));const count=Math.max(...wrapped.map(part=>part.length));
-      values.push({values:cells,height:Math.max(18,count*10+4)});
+      values.push({values:cells,height:Math.max(22,count*12+6)});
     }
-    if(!values.length)for(let i=0;i<12;i++)values.push({values:['','','','',''],height:18});
+    if(!values.length)for(let i=0;i<12;i++)values.push({values:['','','','',''],height:22});
     const sheets=Math.max(1,Math.ceil(values.reduce((sum,item)=>sum+item.height,0)/(HALF_HEIGHT-130)));
     let offset=0;
     for(let page=0;page<sheets;page++){
