@@ -8,6 +8,8 @@ import { AssessmentFolders } from './assessment-folders';
 import { allAssessmentSummaries } from '@/lib/assessment-folders';
 import { AssessmentRemoval, type AssessmentRemovalTarget } from './assessment-removal';
 import { AssessmentTrash } from './assessment-trash';
+import { AssessmentSearch } from './assessment-search';
+import { ExcelDownload } from './excel-download';
 import styles from './assessments.module.css';
 
 export function AssessmentWorkspace({ teacher = false, embedded = false, onCreateTraining }: { teacher?: boolean; embedded?: boolean; onCreateTraining?:(assessment:Assessment)=>void }) {
@@ -47,11 +49,6 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
       if(older) { const result=await createClient().rpc('summer_assessment_get',{p_id:older.id}); if(!result.error) setPrevious(result.data); }
     } catch { setError('Não foi possível abrir esta avaliação.'); } finally { setBusy(false); }
   }
-  async function download(a:Assessment) {
-    setBusy(true);setError('');
-    try { const {downloadAssessmentExcel}=await import('@/lib/assessment-excel'); await downloadAssessmentExcel(a); }
-    catch { setError('Não foi possível gerar o Excel. Tente novamente.'); } finally {setBusy(false);}
-  }
   const back=()=>{setSelected(null);setEditing(false);setPrevious(null);void load();};
   const start=(instructor:string)=>{setFolder(instructor);setSelected({...newAssessment(),instructor});setEditing(true);setPrevious(null);};
   return <main className={embedded?styles.embedded:styles.shell}>
@@ -63,14 +60,14 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
     {teacher&&!selected&&!trash&&<div className={styles.toolbar}><button className={styles.secondary} onClick={()=>{setTrash(true);setFeedback('');}}>Lixeira</button></div>}
     {teacher&&trash?<AssessmentTrash onClose={()=>setTrash(false)} onRestored={()=>void load()}/>:<>
     {selected ? editing ? <AssessmentEditor initial={selected} onClose={a=>{setFolder(a.instructor);back();}} onPublished={a=>{setSelected(a);setFolder(a.instructor);setEditing(false);void load();}} /> : <>
-      <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><button className={styles.primary} disabled={busy} onClick={()=>void download(selected)}>Baixar Excel (.xlsx)</button>
+      <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={back}>{teacher?'← Pasta do professor':'← Todas as avaliações'}</button><ExcelDownload key={selected.id} disabled={busy} onBusyChange={setBusy} createFile={async()=>{const {createAssessmentExcelFile}=await import('@/lib/assessment-excel');return createAssessmentExcelFile(selected);}}/>
         {teacher && <button className={styles.secondary} onClick={()=>{const next=newAssessment();setSelected({...next,student_id:selected.student_id,student_name:selected.student_name,registration:selected.registration,model:selected.model,instructor:selected.instructor});setEditing(true);setPrevious(null);}}>Nova reavaliação</button>}
         {teacher && <button className={styles.removeButton} disabled={busy} onClick={()=>{setFeedback('');setRemoval({kind:'assessment',name:selected.student_name,records:[selected]});}}>Remover avaliação</button>}
         {teacher&&selected.student_id&&onCreateTraining&&<button className={styles.primary} disabled={busy} onClick={()=>onCreateTraining(selected)}>Montar treino para este aluno</button>}
         {teacher&&selected.status==='published'&&<p className={styles.note}>{selected.viewed_at?`Visualizada pelo aluno em ${new Date(selected.viewed_at).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})}`:'Ainda não visualizada pelo aluno'}</p>}
       </div><AssessmentReport assessment={selected} previous={previous} />
       {selected.student_id && <AssessmentEvolution studentId={selected.student_id} />}
-    </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} onRemove={target=>{setFeedback('');setRemoval(target);}} busy={busy}/> : <>
+    </> : teacher ? loading ? <p role="status">Organizando as pastas dos professores…</p> : !error && <AssessmentSearch items={items} busy={busy} onOpen={item=>{setFolder(item.instructor);void open(item);}}><AssessmentFolders items={items} folder={folder} onFolder={setFolder} onOpen={item=>void open(item)} onNew={start} onRemove={target=>{setFeedback('');setRemoval(target);}} busy={busy}/></AssessmentSearch> : <>
       {loading ? <p role="status">Carregando avaliações…</p> : !items.length && !error ? <section className={styles.empty}><h2>Sua avaliação aparecerá aqui</h2><p>Depois da avaliação na academia, o professor publicará os resultados na sua conta. Não é necessário contratar o Pro para consultar.</p></section> :
         <div className={styles.list}>{items.map(a=><button className={styles.listCard} key={a.id} disabled={busy} onClick={()=>void open(a)}>
           <span className={styles.badge}>{a.status==='published'?'Publicada':'Rascunho'}</span><h2>Avaliação de {displayDate(a.assessed_on)}</h2>
@@ -96,7 +93,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
   const [errors,setErrors]=useState<string[]>([]);const [busy,setBusy]=useState(false);const [finding,setFinding]=useState(false);
   const [candidate,setCandidate]=useState<AssessmentStudent | null>(null);const [lookupMessage,setLookupMessage]=useState('');
   const generation=useRef(0);const savedGeneration=useRef(0);const saving=useRef(false);const mounted=useRef(true);const conflict=useRef(false);
-  const [downloading,setDownloading]=useState(false);const [publishing,setPublishing]=useState(false);
+  const [publishing,setPublishing]=useState(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   function update(patch:Partial<Assessment>) {
     generation.current++;current.current={...current.current,...patch};setRecord(current.current);setSaveMessage('Alterações ainda não salvas');
@@ -148,10 +145,6 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
     if(!confirm(`Publicar esta avaliação para ${current.current.student_name}, matrícula ${current.current.registration}? Depois de publicada, ela será preservada no histórico.`))return;
     setPublishing(true);const result=await save(true);setPublishing(false);if(result)onPublished(result);
   }
-  async function download(){
-    const issues=assessmentIssues(current.current);if(issues.length){setErrors(issues);return;}
-    setDownloading(true);try{const {downloadAssessmentExcel}=await import('@/lib/assessment-excel');await downloadAssessmentExcel(current.current);}catch{setErrors(['Não foi possível baixar o Excel. Tente novamente.']);}finally{setDownloading(false);}
-  }
   const titles=['Identificação',...ASSESSMENT_SECTIONS.map(s=>s.title)];
   return <section className={styles.editor}>
     <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={close}>← Pasta do professor</button><span className={styles.saveStatus} role="status">{saveMessage}</span></div>
@@ -181,7 +174,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
       {step<titles.length-1 && !preview && <button className={styles.primary} onClick={()=>setStep(step+1)}>Próxima etapa →</button>}
       <button className={styles.secondary} onClick={()=>setPreview(!preview)}>{preview?'Voltar ao preenchimento':'Visualizar como aluno'}</button>
     </div>
-    <div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict.current} onClick={()=>void save()}>Salvar rascunho</button><button className={styles.secondary} disabled={downloading} onClick={()=>void download()}>{downloading?'Gerando Excel…':'Baixar Excel (.xlsx)'}</button><button className={styles.primary} disabled={busy||publishing||conflict.current} onClick={()=>void publish()}>Publicar para o aluno</button></div>
+    <div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict.current} onClick={()=>void save()}>Salvar rascunho</button><ExcelDownload key={record.id} disabled={publishing} createFile={async()=>{const snapshot=current.current;const issues=assessmentIssues(snapshot);if(issues.length)throw new Error(issues.join(' '));const {createAssessmentExcelFile}=await import('@/lib/assessment-excel');return createAssessmentExcelFile(snapshot);}}/><button className={styles.primary} disabled={busy||publishing||conflict.current} onClick={()=>void publish()}>Publicar para o aluno</button></div>
     <p className={styles.note}>O Excel é uma cópia editável. Salve o arquivo na pasta do professor no computador; alterações feitas nele não modificam a avaliação publicada no site.</p>
   </section>;
 }

@@ -55,6 +55,9 @@
 .listCard > span:last-child { font-weight: 700; }
 .badge { display: inline-block; padding: 6px 10px; background: #fff4ba; color: #66520a; border-radius: 8px; font-size: 12px; font-weight: 700; }
 .toolbar { justify-content: flex-start; margin: 20px 0; }
+.excelDownload { display: grid; gap: 8px; min-width: 0; }
+.downloadReady { max-width: 320px; padding: 12px; border: 1px solid #cdddae; background: #f1f8e8; border-radius: 12px; overflow-wrap: anywhere; }
+.downloadReady p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
 .saveStatus { font-size: 13px; color: #615f53; }
 .notice { background: #fff3d6; border: 1px solid #efd482; border-radius: 12px; padding: 16px; margin: 16px 0; line-height: 1.6; overflow-wrap: anywhere; }
 .notice button { margin: 8px; }
@@ -126,6 +129,7 @@
   .search { flex-wrap: wrap; }
   .search label { flex-basis: 100%; }
   .toolbar > button, .bottom > button { flex: 1 1 150px; }
+  .toolbar > .excelDownload, .bottom > .excelDownload { flex: 1 1 150px; }
   .bottom { padding: 12px; }
   .reportHeader h2 { font-size: 23px; }
   .folders { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }

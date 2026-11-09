@@ -1,5 +1,5 @@
 import type { TrainingPlan } from './training-plans.ts';
-import { displayDate } from './assessments.ts';
+import { TRAINING_COLUMNS, trainingPaperIdentity, trainingExerciseCells } from './training-paper.ts';
 
 // A4 portrait contains two horizontal A5 cards, matching the academy's paper form.
 export async function printTraining(plan:TrainingPlan){
@@ -46,7 +46,6 @@ export async function printTraining(plan:TrainingPlan){
   const root=doc.createElement('div');doc.body.append(root);
   const text=(parent:HTMLElement,tag:string,value:string,className='')=>{const el=doc.createElement(tag);el.textContent=value;el.className=className;parent.append(el);return el;};
   const panels:HTMLElement[]=[];let rows!:HTMLElement;let body!:HTMLTableSectionElement;let currentTitle='';
-  const date=(v:string|null|undefined)=>v?displayDate(v):'';
   function next(){
     const sheet=doc.createElement('section');sheet.className='sheet';root.append(sheet);
     const panel=doc.createElement('article');panel.className='half';sheet.append(panel);panels.push(panel);
@@ -55,18 +54,13 @@ export async function printTraining(plan:TrainingPlan){
     if(logoData){const logo=doc.createElement('img');logo.src=logoData;logo.alt='Summer Fit';brand.append(logo);}
     text(brand,'strong','PROGRAMA SUMMER FIT');if(plan.status==='draft')text(brand,'span','RASCUNHO','draft');
     const identity=doc.createElement('table');identity.className='identity';header.append(identity);
-    for(const values of [
-      ['NOME',plan.student_name||'', 'MATRÍCULA',plan.registration||''],
-      ['PROFESSOR',plan.instructor||'', 'DATA',date(plan.starts_on)],
-      ['OBJETIVO',plan.objective||'', 'REVISÃO',date(plan.reviewed_on)],
-      ['ZONA ALVO',plan.target_zone||'', 'REAVALIAÇÃO',date(plan.reassess_on)],
-    ]){const tr=doc.createElement('tr');identity.append(tr);for(const value of values)text(tr,'td',value);}
-    text(header,'div',(plan.title?plan.title+' · ':'')+currentTitle,'workout');
+    for(const values of trainingPaperIdentity(plan)){const tr=doc.createElement('tr');identity.append(tr);for(const value of values)text(tr,'td',value);}
+    text(header,'div',currentTitle,'workout');
     rows=doc.createElement('div');rows.className='rows';panel.append(rows);
     const table=doc.createElement('table');table.className='exercises';rows.append(table);
     const cols=doc.createElement('colgroup');table.append(cols);for(const width of ['45%','8%','12%','10%','25%']){const col=doc.createElement('col');col.style.width=width;cols.append(col);}
     const thead=doc.createElement('thead');table.append(thead);const tr=doc.createElement('tr');thead.append(tr);
-    for(const name of ['EXERCÍCIOS','SÉRIES','REPET. / TEMPO','CARGA','OBSERVAÇÃO'])text(tr,'th',name);
+    for(const name of TRAINING_COLUMNS)text(tr,'th',name);
     body=doc.createElement('tbody');table.append(body);
   }
   function addRow(values:string[],general=false){
@@ -93,8 +87,7 @@ export async function printTraining(plan:TrainingPlan){
   }
   for(const w of plan.workouts){
     currentTitle=w.title+(w.focus?' · '+w.focus:'');next();
-    for(const e of w.exercises)append([e.name||'Exercício não informado',e.sets?e.sets+'x':'',e.reps,e.weight===undefined?'':e.weight+' '+(e.weightUnit||'kg'),[e.restSeconds!==undefined?'Descanso: '+e.restSeconds+'s':'',e.notes||''].filter(Boolean).join('\n')]);
-    if(plan.notes)append(['ORIENTAÇÕES: '+plan.notes],true);
+    for(const e of w.exercises)append(trainingExerciseCells(e));
     // Keep a few ruled lines for handwritten adjustments without making another page.
     for(let i=0;i<3;i++){const row=addRow([' ',' ',' ',' ',' ']);row.style.height='5mm';if(rows.scrollHeight>rows.clientHeight+1){row.remove();break;}}
   }
