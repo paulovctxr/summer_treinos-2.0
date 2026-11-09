@@ -149,6 +149,12 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
     setPublishing(true);const result=await save(true);setPublishing(false);if(result)onPublished(result);
   }
   const titles=['Identificação',...ASSESSMENT_SECTIONS.map(s=>s.title)];
+  const visibleFields=ASSESSMENT_SECTIONS[step-1]?.fields.filter((field)=>{
+    if(!field.key.startsWith('skinfold_')) return true;
+    const women=['skinfold_triceps','skinfold_suprailiac','skinfold_thigh'];
+    const men=['skinfold_chest','skinfold_abdomen','skinfold_thigh'];
+    return (record.model==='MULHERES'?women:men).includes(field.key);
+  }) || [];
   return <section className={styles.editor}>
     <div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={close}>← Pasta do professor</button><span className={styles.saveStatus} role="status">{saveMessage}</span></div>
     {errors.length>0 && <div role="alert" className={styles.notice}><strong>Confira antes de continuar</strong><ul>{errors.map((error,i)=><li key={i}>{error}</li>)}</ul></div>}
@@ -167,7 +173,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
           <label>Previsão de reavaliação<input type="date" value={record.reassess_on || ''} min={record.assessed_on} onChange={e=>update({reassess_on:e.target.value || null})} /></label>
           <label>Modelo de referência<select value={record.model} onChange={e=>update({model:e.target.value as Assessment['model']})}><option value="HOMENS">Homens</option><option value="MULHERES">Mulheres</option></select></label>
         </div>
-      </> : <><p className={styles.note}>Preencha peso, nascimento e as três dobras do protocolo. Gordura corporal, massa de gordura e massa magra são calculadas automaticamente; a meta de gordura continua opcional.</p><div className={styles.grid}>{ASSESSMENT_SECTIONS[step-1].fields.map(f=><label key={f.key} className={f.type==='text'?styles.wide:''}>{f.label}{f.unit?` (${f.unit})`:''}
+      </> : <><p className={styles.note}>Preencha peso, nascimento e as três dobras do protocolo. Gordura corporal, massa de gordura e massa magra são calculadas automaticamente; a meta de gordura continua opcional.</p><div className={styles.grid}>{visibleFields.map(f=><label key={f.key} className={f.type==='text'?styles.wide:''}>{f.label}{f.unit?` (${f.unit})`:''}
         {f.derived ? <output className={styles.derivedField}>{record.data[f.key] ? `${record.data[f.key]}${f.unit ? ` ${f.unit}` : ''}` : 'Será calculado após as medidas'}</output> : f.type==='text'?<textarea rows={3} maxLength={2000} value={record.data[f.key] || ''} onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />:
           <input type={f.type==='date'?'date':'number'} inputMode={f.type==='number'?'decimal':undefined} step={f.type==='number'?'any':undefined} min={f.type==='date'?'1900-01-01':f.min} max={f.type==='date'?record.assessed_on:f.max} value={record.data[f.key] || ''} placeholder="Não informado" onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />}
       </label>)}</div>{step===2 && <BodyFatChart data={record.data} model={record.model} assessedOn={record.assessed_on} />}</>}
