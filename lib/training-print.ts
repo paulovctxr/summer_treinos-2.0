@@ -89,11 +89,12 @@ export async function renderTrainingPrint(plan:TrainingPlan,frame:HTMLIFrameElem
       remaining=remaining.map(s=>s.slice(best));if(remaining.some(Boolean))next();
     }
   }
-  for(const w of plan.workouts){
+  const workouts=plan.workouts.length?plan.workouts:[{title:'Treino',focus:'',exercises:[]}];
+  for(const w of workouts){
     currentTitle=w.title+(w.focus?' · '+w.focus:'');next();
     for(const e of w.exercises)append(trainingExerciseCells(e));
     // Keep a few ruled lines for handwritten adjustments without making another page.
-    for(let i=0;i<3;i++){const row=addRow([' ',' ',' ',' ',' ']);row.style.height='5mm';if(rows.scrollHeight>rows.clientHeight+1){row.remove();break;}}
+    for(let i=0;i<(w.exercises.length?3:12);i++){const row=addRow([' ',' ',' ',' ',' ']);row.style.height='5mm';if(rows.scrollHeight>rows.clientHeight+1){row.remove();break;}}
   }
   panels.forEach((panel,i)=>{const footer=doc.createElement('footer');footer.className='footer';text(footer,'span','Siga as orientações do professor · Summer Fit');text(footer,'span',(i+1)+' / '+panels.length);panel.append(footer);});
   const refreshCopies=()=>{root.querySelectorAll('.duplicate').forEach(n=>n.remove());if(copies.checked)for(const panel of panels){const copy=panel.cloneNode(true) as HTMLElement;copy.classList.add('duplicate');panel.parentElement?.append(copy);}};
