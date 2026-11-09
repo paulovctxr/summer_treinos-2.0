@@ -1,5 +1,6 @@
 'use client';
-import type { AssessmentData } from '@/lib/assessments';
+import type { Assessment, AssessmentData } from '@/lib/assessments';
+import { calculateBodyComposition } from '@/lib/body-composition';
 import styles from './assessments.module.css';
 
 function numeric(value: string | undefined) {
@@ -12,37 +13,45 @@ function percent(value: number | null) {
   return value === null ? 0 : Math.min(100, Math.max(0, value));
 }
 
-export function BodyFatChart({ data, showEmpty = true }: { data: AssessmentData; showEmpty?: boolean }) {
-  const current = numeric(data.body_fat);
+export function BodyFatChart({ data, model, assessedOn, showEmpty = true }: { data: AssessmentData; model: Assessment['model']; assessedOn: string; showEmpty?: boolean }) {
+  const calculation = calculateBodyComposition(data, model, assessedOn);
+  const current = calculation.bodyFat ?? numeric(data.body_fat);
   const target = numeric(data.target_fat);
-  const fatMass = numeric(data.fat_mass);
-  const leanMass = numeric(data.lean_mass);
+  const fatMass = calculation.fatMass ?? numeric(data.fat_mass);
+  const leanMass = calculation.leanMass ?? numeric(data.lean_mass);
   const totalMass = fatMass !== null && leanMass !== null ? fatMass + leanMass : null;
-  if (!showEmpty && current === null && target === null && fatMass === null && leanMass === null) return null;
+  const compositionPercent = totalMass && totalMass > 0 && fatMass !== null ? fatMass / totalMass * 100 : current;
+  const hasValues = current !== null || target !== null || fatMass !== null || leanMass !== null;
+  if (!showEmpty && !hasValues) return null;
 
-  return <section className={styles.compositionChart} aria-label="Gráfico da composição corporal">
+  const radius = 48;
+  const circumference = 2 * Math.PI * radius;
+  const fatArc = circumference * percent(compositionPercent) / 100;
+  const missing = calculation.missing;
+
+  return <section className={styles.compositionChart} aria-label="Gráfico de pizza da composição corporal">
     <div className={styles.compositionHeader}>
-      <div><p className={styles.eyebrow}>ACOMPANHAMENTO AO PREENCHER</p><h3>Gordura corporal</h3></div>
+      <div><p className={styles.eyebrow}>CÁLCULO AUTOMÁTICO</p><h3>Composição corporal</h3></div>
       <strong>{current === null ? '—' : `${current.toLocaleString('pt-BR')}%`}</strong>
     </div>
-    {current === null && target === null ? <p className={styles.note}>Informe a gordura corporal para visualizar o gráfico. Ele será atualizado a cada medida preenchida.</p> : <>
-      <div className={styles.compositionTrack} role="img" aria-label={current === null ? 'Gordura corporal ainda não informada' : `Gordura corporal atual: ${current} por cento`}>
-        <span style={{ width: `${percent(current)}%` }} />
-        {target !== null && <i style={{ left: `${percent(target)}%` }} aria-label={`Meta de gordura: ${target} por cento`} />}
+    {!hasValues ? <p className={styles.note}>Preencha peso, nascimento e as três dobras do protocolo para calcular a gordura corporal.</p> : <div className={styles.pieLayout}>
+      <div className={styles.pieChart} role="img" aria-label={compositionPercent === null ? 'Composição corporal aguardando medidas' : `${compositionPercent.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de gordura e ${Math.max(0, 100 - compositionPercent).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de massa magra`}>
+        <svg viewBox="0 0 140 140" aria-hidden="true">
+          <circle cx="70" cy="70" r={radius} className={styles.pieBase} />
+          {compositionPercent !== null && <circle cx="70" cy="70" r={radius} className={styles.pieFat} strokeDasharray={`${fatArc} ${circumference - fatArc}`} />}
+        </svg>
+        <span>{compositionPercent === null ? '—' : `${compositionPercent.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}<small> gordura</small></span>
       </div>
-      <div className={styles.compositionScale}><span>0%</span><span>50%</span><span>100%</span></div>
-      <div className={styles.compositionLegend}>
-        <span><b className={styles.compositionDot} /> Gordura atual {current === null ? '—' : `${current.toLocaleString('pt-BR')}%`}</span>
-        {target !== null && <span><b className={`${styles.compositionDot} ${styles.compositionTarget}`} /> Meta {target.toLocaleString('pt-BR')}%</span>}
+      <div className={styles.pieDetails}>
+        <p><b className={`${styles.compositionDot} ${styles.fatDot}`} /> Gordura corporal <strong>{current === null ? '—' : `${current.toLocaleString('pt-BR')}%`}</strong></p>
+        <p><b className={`${styles.compositionDot} ${styles.leanDot}`} /> Massa magra <strong>{compositionPercent === null ? '—' : `${Math.max(0, 100 - compositionPercent).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`}</strong></p>
+        {target !== null && <p><b className={`${styles.compositionDot} ${styles.compositionTarget}`} /> Meta <strong>{target.toLocaleString('pt-BR')}%</strong></p>}
+        {calculation.bodyFat !== null ? <small>Calculado pelas três dobras, idade e modelo selecionado.</small> : missing.length > 0 && <small>Para calcular, falta: {missing.join(', ')}.</small>}
       </div>
-    </>}
+    </div>}
     {(fatMass !== null || leanMass !== null) && <div className={styles.compositionMasses}>
       <div><span>Massa de gordura</span><strong>{fatMass === null ? '—' : `${fatMass.toLocaleString('pt-BR')} kg`}</strong></div>
       <div><span>Massa magra</span><strong>{leanMass === null ? '—' : `${leanMass.toLocaleString('pt-BR')} kg`}</strong></div>
-    </div>}
-    {totalMass !== null && totalMass > 0 && <div className={styles.massTrack} role="img" aria-label={`Composição do peso: ${fatMass} quilos de gordura e ${leanMass} quilos de massa magra`}>
-      <span className={styles.fatMassPart} style={{ width: `${Math.max(0, Math.min(100, fatMass! / totalMass * 100))}%` }} />
-      <span className={styles.leanMassPart} style={{ width: `${Math.max(0, Math.min(100, leanMass! / totalMass * 100))}%` }} />
     </div>}
   </section>;
 }

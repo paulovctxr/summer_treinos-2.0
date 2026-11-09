@@ -17,7 +17,7 @@ export function AssessmentReport({ assessment: a, previous }: { assessment: Asse
         {delta!==null && Number.isFinite(delta) && <small>{delta>0?'+':''}{delta.toLocaleString('pt-BR',{maximumFractionDigits:2})} {f.key==='body_fat'?'p.p.':f.unit} desde {displayDate(previous!.assessed_on)}</small>}
       </div>;
     })}</div>
-    <BodyFatChart data={a.data} showEmpty={false} />
+    <BodyFatChart data={a.data} model={a.model} assessedOn={a.assessed_on} showEmpty={false} />
     <p className={styles.note}>Resultados e orientações registrados pelo professor. Campos sem preenchimento aparecem como “Não informado”.</p>
     {ASSESSMENT_SECTIONS.map(section => <details className={styles.section} key={section.title} open={section.title === 'Orientações do professor'}>
       <summary>{section.title}</summary><dl className={styles.values}>{section.fields.map(f => <div key={f.key}><dt>{f.label}</dt><dd>{a.data[f.key] ? f.type==='date' ? displayDate(a.data[f.key]) : `${a.data[f.key]}${f.unit ? ` ${f.unit}`:''}` : 'Não informado'}</dd></div>)}</dl>

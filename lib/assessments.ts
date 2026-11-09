@@ -1,6 +1,7 @@
-export type AssessmentField = { key: string; label: string; unit?: string; min?: number; max?: number; type?: 'text' | 'date' | 'number' };
+export type AssessmentField = { key: string; label: string; unit?: string; min?: number; max?: number; type?: 'text' | 'date' | 'number'; derived?: boolean };
 export type AssessmentSection = { title: string; fields: AssessmentField[] };
 const number = (key: string, label: string, unit: string, min: number, max: number): AssessmentField => ({ key, label, unit, min, max, type: 'number' });
+const derivedNumber = (key: string, label: string, unit: string, min: number, max: number): AssessmentField => ({ ...number(key, label, unit, min, max), derived: true });
 const text = (key: string, label: string): AssessmentField => ({ key, label, type: 'text' });
 
 export const ASSESSMENT_SECTIONS: AssessmentSection[] = [
@@ -17,8 +18,8 @@ export const ASSESSMENT_SECTIONS: AssessmentSection[] = [
     number('skinfold_thigh', 'Dobra da coxa', 'mm', 1, 100), number('skinfold_triceps', 'Dobra tricipital', 'mm', 1, 100),
     number('skinfold_suprailiac', 'Dobra supra-ilíaca', 'mm', 1, 100),
     text('body_protocol', 'Protocolo utilizado para composição corporal'),
-    number('body_fat', 'Gordura corporal informada pelo professor', '%', 1, 75), number('target_fat', 'Meta de gordura corporal', '%', 1, 75),
-    number('fat_mass', 'Massa de gordura informada', 'kg', 0, 300), number('lean_mass', 'Massa magra informada', 'kg', 1, 250),
+    derivedNumber('body_fat', 'Gordura corporal calculada', '%', 1, 75), number('target_fat', 'Meta de gordura corporal', '%', 1, 75),
+    derivedNumber('fat_mass', 'Massa de gordura calculada', 'kg', 0, 300), derivedNumber('lean_mass', 'Massa magra calculada', 'kg', 1, 250),
     number('target_weight', 'Meta de peso definida pelo professor', 'kg', 15, 400),
     number('chest', 'Tórax', 'cm', 10, 250), number('abdomen', 'Abdome', 'cm', 10, 250), number('hip', 'Quadril', 'cm', 10, 250),
     ...[['arm','Braço'], ['forearm','Antebraço'], ['upper_thigh','Coxa superior'], ['mid_thigh','Coxa média'], ['lower_thigh','Coxa inferior'], ['calf','Perna']].flatMap(([key,label]) => [

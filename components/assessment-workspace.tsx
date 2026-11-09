@@ -5,6 +5,7 @@ import { ASSESSMENT_SECTIONS, assessmentIssues, displayDate, localDate, newAsses
 import { AssessmentReport } from './assessment-report';
 import { AssessmentEvolution } from './assessment-evolution';
 import { BodyFatChart } from './body-fat-chart';
+import { withDerivedComposition } from '@/lib/body-composition';
 import { AssessmentFolders } from './assessment-folders';
 import { allAssessmentSummaries } from '@/lib/assessment-folders';
 import { AssessmentRemoval, type AssessmentRemovalTarget } from './assessment-removal';
@@ -88,8 +89,9 @@ export function AssessmentWorkspace({ teacher = false, embedded = false, onCreat
 }
 
 function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onClose:(a:Assessment)=>void;onPublished:(a:Assessment)=>void}) {
-  const [record,setRecord]=useState(initial);const current=useRef(initial);
-  const lastSaved=useRef(initial);
+  const prepared=withDerivedComposition(initial);
+  const [record,setRecord]=useState(prepared);const current=useRef(prepared);
+  const lastSaved=useRef(prepared);
   const [step,setStep]=useState(0);const [preview,setPreview]=useState(false);const [saveMessage,setSaveMessage]=useState(initial.revision?'Rascunho salvo':'Novo rascunho');
   const [errors,setErrors]=useState<string[]>([]);const [busy,setBusy]=useState(false);const [finding,setFinding]=useState(false);
   const [candidate,setCandidate]=useState<AssessmentStudent | null>(null);const [lookupMessage,setLookupMessage]=useState('');
@@ -97,7 +99,7 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
   const [publishing,setPublishing]=useState(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   function update(patch:Partial<Assessment>) {
-    generation.current++;current.current={...current.current,...patch};setRecord(current.current);setSaveMessage('Alterações ainda não salvas');
+    generation.current++;current.current=withDerivedComposition({...current.current,...patch});setRecord(current.current);setSaveMessage('Alterações ainda não salvas');
   }
   const save=useCallback(async(publish=false):Promise<Assessment | null>=>{
     if(saving.current || conflict.current) return null;
@@ -165,10 +167,10 @@ function AssessmentEditor({initial,onClose,onPublished}:{initial:Assessment;onCl
           <label>Previsão de reavaliação<input type="date" value={record.reassess_on || ''} min={record.assessed_on} onChange={e=>update({reassess_on:e.target.value || null})} /></label>
           <label>Modelo de referência<select value={record.model} onChange={e=>update({model:e.target.value as Assessment['model']})}><option value="HOMENS">Homens</option><option value="MULHERES">Mulheres</option></select></label>
         </div>
-      </> : <><p className={styles.note}>Preencha somente o que foi avaliado. Resultados de protocolos devem ser conferidos e informados pelo professor.</p><div className={styles.grid}>{ASSESSMENT_SECTIONS[step-1].fields.map(f=><label key={f.key} className={f.type==='text'?styles.wide:''}>{f.label}{f.unit?` (${f.unit})`:''}
-        {f.type==='text'?<textarea rows={3} maxLength={2000} value={record.data[f.key] || ''} onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />:
+      </> : <><p className={styles.note}>Preencha peso, nascimento e as três dobras do protocolo. Gordura corporal, massa de gordura e massa magra são calculadas automaticamente; a meta de gordura continua opcional.</p><div className={styles.grid}>{ASSESSMENT_SECTIONS[step-1].fields.map(f=><label key={f.key} className={f.type==='text'?styles.wide:''}>{f.label}{f.unit?` (${f.unit})`:''}
+        {f.derived ? <output className={styles.derivedField}>{record.data[f.key] ? `${record.data[f.key]}${f.unit ? ` ${f.unit}` : ''}` : 'Será calculado após as medidas'}</output> : f.type==='text'?<textarea rows={3} maxLength={2000} value={record.data[f.key] || ''} onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />:
           <input type={f.type==='date'?'date':'number'} inputMode={f.type==='number'?'decimal':undefined} step={f.type==='number'?'any':undefined} min={f.type==='date'?'1900-01-01':f.min} max={f.type==='date'?record.assessed_on:f.max} value={record.data[f.key] || ''} placeholder="Não informado" onChange={e=>update({data:{...record.data,[f.key]:e.target.value}})} />}
-      </label>)}</div>{step===2 && <BodyFatChart data={record.data} />}</>}
+      </label>)}</div>{step===2 && <BodyFatChart data={record.data} model={record.model} assessedOn={record.assessed_on} />}</>}
     </fieldset>}
     <div className={styles.toolbar}>
       {step>0 && !preview && <button className={styles.secondary} onClick={()=>setStep(step-1)}>← Etapa anterior</button>}

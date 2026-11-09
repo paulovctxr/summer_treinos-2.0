@@ -41,6 +41,7 @@
 .grid, .values { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
 .grid label, .fields label, .search label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; min-width: 0; }
 .grid input, .grid textarea, .grid select, .fields input, .search input { width: 100%; min-width: 0; max-width: 100%; min-height: 46px; border: 1px solid #d4d4cc; border-radius: 10px; background: #fffef9; padding: 11px 12px; font: inherit; font-size: 16px; color: #202020; }
+.derivedField { display: flex; align-items: center; width: 100%; min-height: 46px; border: 1px solid #d4d4cc; border-radius: 10px; background: #f2f2ed; padding: 11px 12px; font: inherit; font-size: 16px; color: #5f5f56; }
 .grid input:focus, .grid textarea:focus, .fields input:focus, .search input:focus { outline: 2px solid #bd1425; outline-offset: 1px; }
 .grid input[readonly] { background: #f2f2ed; }
 .grid textarea { resize: vertical; }
@@ -99,6 +100,20 @@
 .compositionMasses > div { display: grid; gap: 5px; padding: 12px; border-radius: 10px; background: #f7f7f0; }
 .compositionMasses span { color: #67675f; font-size: 12px; }
 .compositionMasses strong { font-size: 17px; }
+.pieLayout { display: grid; grid-template-columns: minmax(150px,190px) minmax(0,1fr); align-items: center; gap: 24px; }
+.pieChart { position: relative; width: min(190px,100%); aspect-ratio: 1; justify-self: center; }
+.pieChart svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.pieChart circle { fill: none; stroke-width: 30; }
+.pieBase { stroke: #b8d76c; }
+.pieFat { stroke: #bd1425; stroke-linecap: butt; }
+.pieChart > span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #282820; font-size: 20px; font-weight: 800; }
+.pieChart > span small { font-size: 11px; font-weight: 600; color: #67675f; }
+.pieDetails { display: grid; gap: 10px; }
+.pieDetails p { display: flex; align-items: center; gap: 6px; margin: 0; color: #5f5c50; font-size: 14px; }
+.pieDetails p strong { margin-left: auto; color: #282820; }
+.pieDetails > small { color: #67675f; line-height: 1.5; }
+.fatDot { background: #bd1425; }
+.leanDot { background: #b8d76c; }
 .massTrack { display: flex; margin-top: 12px; height: 12px; }
 .fatMassPart { background: #bd1425; transition: width .2s ease; }
 .leanMassPart { background: #b8d76c; transition: width .2s ease; }
@@ -152,6 +167,8 @@
   .compositionChart { padding: 16px 12px; }
   .compositionHeader > strong { font-size: 24px; }
   .compositionMasses { gap: 8px; }
+  .pieLayout { grid-template-columns: minmax(130px,160px) minmax(0,1fr); gap: 14px; }
+  .pieDetails p { font-size: 12px; }
   .steps { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
   .steps button { text-align: left; font-size: 12px; }
   .search { flex-wrap: wrap; }
