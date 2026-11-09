@@ -4,7 +4,7 @@ const number = (key: string, label: string, unit: string, min: number, max: numb
 const text = (key: string, label: string): AssessmentField => ({ key, label, type: 'text' });
 
 export const ASSESSMENT_SECTIONS: AssessmentSection[] = [
-  { title: 'Histórico e objetivos', fields: [
+  { title: 'Anamnese', fields: [
     { key: 'birth_date', label: 'Data de nascimento', type: 'date' },
     text('injuries', 'Fraturas, entorses, doenças e datas'), text('medication', 'Medicamentos e tempo de uso'),
     text('smoking', 'Tabagismo'), number('sleep', 'Horas de sono por noite', 'h', 0, 24), text('work_routine', 'Rotina de trabalho'),
