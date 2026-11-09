@@ -12,12 +12,11 @@ test('training links only identification, requires explicit prescription, and co
   const copy=copyTraining({...plan,status:'published',revision:2});assert.notEqual(copy.id,plan.id);assert.equal(copy.revision,0);assert.equal(copy.status,'draft');assert.notEqual(copy.workouts[0].id,plan.workouts[0].id);assert.notEqual(copy.workouts[0].exercises[0].id,plan.workouts[0].exercises[0].id);
   copy.workouts[0].exercises[0].name='Mudou';assert.equal(plan.workouts[0].exercises[0].name,'Supino reto');
 });
-test('training Excel keeps literal input, exercise notes, blanks and linked copies on A4',async()=>{
+test('training Excel keeps one aligned editable ficha on A4',async()=>{
   const plan=trainingForSave({...newTraining(),student_name:'Aluno Exemplo',title:'Ficha exemplo',notes:'Revisar com o professor',workouts:[{id:'a',title:'Treino A',focus:'Força',minutes:45,exercises:[{id:'e',name:'=1+1',sets:0,reps:'',notes:'Movimento controlado'}]}]});
   const bytes=await trainingWorkbook(plan).xlsx.writeBuffer();const book=new ExcelJS.Workbook();await book.xlsx.load(bytes);const sheet=book.worksheets[0];
   assert.equal(sheet.getCell('A1').value,'SUMMER FIT');assert.equal(sheet.getCell('C1').value,'PROGRAMA SUMMER FIT · RASCUNHO');
   assert.equal(sheet.getCell('A6').value,'Treino A · Força');assert.equal(sheet.getCell('A8').value,'EXERCÍCIOS');
   assert.equal(sheet.getCell('A9').value,'=1+1');assert.equal(sheet.getCell('D9').value,'');assert.equal(sheet.getCell('I9').value,'Movimento controlado');
-  assert.equal(sheet.getCell('A17').value.formula,'IF(A1="","",A1)');assert.equal(sheet.getCell('A17').value.result,'SUMMER FIT');
-  assert.equal(plan.notes,'');assert.equal(sheet.pageSetup.paperSize,9);assert.equal(sheet.pageSetup.orientation,'portrait');assert.equal(sheet.pageSetup.fitToWidth,1);assert.equal(sheet.pageSetup.fitToHeight,1);
+  assert.equal(sheet.getCell('A17').value,' ');assert.equal(sheet.getCell('A17').value.formula,undefined);assert.equal(plan.notes,'');assert.equal(sheet.pageSetup.paperSize,9);assert.equal(sheet.pageSetup.orientation,'portrait');assert.equal(sheet.pageSetup.fitToWidth,1);assert.equal(sheet.pageSetup.fitToHeight,1);assert.equal(book.worksheets.length,1);
 });
