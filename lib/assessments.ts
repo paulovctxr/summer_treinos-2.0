@@ -17,7 +17,6 @@ export const ASSESSMENT_SECTIONS: AssessmentSection[] = [
     number('skinfold_chest', 'Dobra do tórax', 'mm', 1, 100), number('skinfold_abdomen', 'Dobra abdominal', 'mm', 1, 100),
     number('skinfold_thigh', 'Dobra da coxa', 'mm', 1, 100), number('skinfold_triceps', 'Dobra tricipital', 'mm', 1, 100),
     number('skinfold_suprailiac', 'Dobra supra-ilíaca', 'mm', 1, 100),
-    text('body_protocol', 'Protocolo utilizado para composição corporal'),
     derivedNumber('body_fat', 'Gordura corporal calculada', '%', 1, 75), number('target_fat', 'Meta de gordura corporal', '%', 1, 75),
     derivedNumber('fat_mass', 'Massa de gordura calculada', 'kg', 0, 300), derivedNumber('lean_mass', 'Massa magra calculada', 'kg', 1, 250),
     number('target_weight', 'Meta de peso definida pelo professor', 'kg', 15, 400),

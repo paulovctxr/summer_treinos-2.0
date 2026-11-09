@@ -118,7 +118,7 @@ export function buildAssessmentWorkbook(a: Assessment, logoBase64?: string) {
     const total=merged(row,5,6,{formula:`IF(COUNT(${refs.join(',')})=3,SUM(${refs.join(',')}),"")`,result:values.every(v=>typeof v==='number')?(values as number[]).reduce((s,v)=>s+v,0):''},C.derived,true);total.numFmt='0.##';
     merged(row,7,12,'Resultados de composição corporal informados pelo professor.',C.white,false,10);sheet.getRow(row++).height=38;
     for(const key of ['skinfold_chest','skinfold_abdomen','skinfold_triceps','skinfold_suprailiac'].filter(k=>!folds.includes(k)&&record.data[k]))pair(measure(key));
-    gap();block('body_protocol','Protocolo de composição corporal utilizado');
+    gap();line('Protocolo automático: três dobras, idade e modelo selecionado.',C.derived,10);
     merged(row,1,6,'CIRCUNFERÊNCIAS',C.derived,true);merged(row,7,12,'MEDIDAS DIREITA / ESQUERDA',C.derived,true);sheet.getRow(row++).height=28;
     pair(measure('chest','Tórax normal'),measure('abdomen'));pair(measure('hip'));
     const limbs=[['arm','Braço'],['forearm','Antebraço'],['upper_thigh','Coxa superior'],['mid_thigh','Coxa média'],['lower_thigh','Coxa inferior'],['calf','Perna']];
