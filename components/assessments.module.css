@@ -56,6 +56,12 @@
 .badge { display: inline-block; padding: 6px 10px; background: #fff4ba; color: #66520a; border-radius: 8px; font-size: 12px; font-weight: 700; }
 .toolbar { justify-content: flex-start; margin: 20px 0; }
 .excelDownload { display: grid; gap: 8px; min-width: 0; }
+.printDialog { width: calc(100% - 24px); max-width: 1100px; height: calc(100dvh - 24px); max-height: none; padding: 16px; border: 1px solid #ddd; border-radius: 16px; background: white; color: #222; }
+.printDialog[open] { display: flex; flex-direction: column; gap: 12px; }
+.printDialog::backdrop { background: #0009; }
+.printDialogHeader { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.printDialogHeader strong { min-width: 0; overflow-wrap: anywhere; }
+.printFrame { width: 100%; flex: 1; min-height: 0; border: 1px solid #deded5; background: #eee; }
 .downloadReady { max-width: 320px; padding: 12px; border: 1px solid #cdddae; background: #f1f8e8; border-radius: 12px; overflow-wrap: anywhere; }
 .downloadReady p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
 .saveStatus { font-size: 13px; color: #615f53; }

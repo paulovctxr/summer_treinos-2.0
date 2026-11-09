@@ -9,37 +9,37 @@ import { ExerciseNameInput } from './exercise-name-input';
 import { AssessmentReport } from './assessment-report';
 import { TrainingReport } from './training-report';
 import { ExcelDownload } from './excel-download';
-import { printTraining } from '@/lib/training-print';
+import { TrainingPrintPreview } from './training-print-preview';
 import styles from './assessments.module.css';
 
 export function TrainingWorkspace({seed,onDirty,onBusy}:{seed:TrainingPlan|null;onDirty:(dirty:boolean)=>void;onBusy:(busy:boolean)=>void}) {
   const [items,setItems]=useState<TrainingSummary[]>([]);const [selected,setSelected]=useState<TrainingPlan|null>(null);
   const [dirty,setDirty]=useState(false);const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(true);const [conflict,setConflict]=useState(false);
   const [error,setError]=useState('');const [message,setMessage]=useState('');const [search,setSearch]=useState('');const [professor,setProfessor]=useState('');const [page,setPage]=useState(0);
-  const [candidate,setCandidate]=useState<AssessmentStudent|null>(null);const [reference,setReference]=useState<Assessment|null>(null);const [preview,setPreview]=useState(false);
+  const [candidate,setCandidate]=useState<AssessmentStudent|null>(null);const [reference,setReference]=useState<Assessment|null>(null);const [printPlan,setPrintPlan]=useState<TrainingPlan|null>(null);
   const load=useCallback(async()=>{setLoading(true);setError('');try{const all:TrainingSummary[]=[];for(let offset=0;offset<=100000;offset+=30){const {data,error}=await createClient().rpc('summer_training_list',{p_offset:offset});if(error)throw error;all.push(...data);if(data.length<30)break;}setItems(all);}catch{setError('Não foi possível carregar os treinos. Confira a conexão e se a atualização foi ativada no banco.');}finally{setLoading(false);}},[]);
   useEffect(()=>{void load();},[load]);
-  useEffect(()=>{if(seed){setSelected(seed);setDirty(true);setConflict(false);setPreview(false);setCandidate(null);setReference(null);setError('');setMessage('Novo treino vinculado à avaliação. Preencha os exercícios e salve o rascunho.');}},[seed]);
+  useEffect(()=>{if(seed){setSelected(seed);setDirty(true);setConflict(false);setPrintPlan(null);setCandidate(null);setReference(null);setError('');setMessage('Novo treino vinculado à avaliação. Preencha os exercícios e salve o rascunho.');}},[seed]);
   useEffect(()=>{onDirty(dirty);},[dirty,onDirty]);
   useEffect(()=>{onBusy(busy);},[busy,onBusy]);
   useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty||busy)e.preventDefault();};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty,busy]);
   const change=(patch:Partial<TrainingPlan>)=>{setSelected(current=>current?{...current,...patch}:null);setDirty(true);setMessage('Alterações ainda não salvas');};
   const block=(index:number,patch:Partial<Workout>)=>{if(selected)change({workouts:selected.workouts.map((w,i)=>i===index?{...w,...patch}:w)});};
   const exercise=(wi:number,ei:number,patch:Partial<Exercise>)=>{if(selected)block(wi,{exercises:selected.workouts[wi].exercises.map((e,i)=>i===ei?{...e,...patch}:e)});};
-  function openNew(record=newTraining()){setSelected(record);setDirty(true);setCandidate(null);setReference(null);setPreview(false);setConflict(false);setError('');setMessage('Novo rascunho');}
-  function back(){if(dirty&&!confirm('Descartar as alterações não salvas deste treino?'))return;setSelected(null);setDirty(false);setReference(null);setCandidate(null);setPreview(false);setConflict(false);setMessage('');void load();}
-  async function open(a:TrainingSummary){setBusy(true);setError('');try{const {data,error}=await createClient().rpc('summer_training_get',{p_id:a.id});if(error)throw error;setSelected(data);setDirty(false);setPreview(false);setConflict(false);setReference(null);setCandidate(null);setMessage('');}catch{setError('Não foi possível abrir este treino.');}finally{setBusy(false);}}
+  function openNew(record=newTraining()){setSelected(record);setDirty(true);setCandidate(null);setReference(null);setPrintPlan(null);setConflict(false);setError('');setMessage('Novo rascunho');}
+  function back(){if(dirty&&!confirm('Descartar as alterações não salvas deste treino?'))return;setSelected(null);setDirty(false);setReference(null);setCandidate(null);setPrintPlan(null);setConflict(false);setMessage('');void load();}
+  async function open(a:TrainingSummary){setBusy(true);setError('');try{const {data,error}=await createClient().rpc('summer_training_get',{p_id:a.id});if(error)throw error;setSelected(data);setDirty(false);setPrintPlan(null);setConflict(false);setReference(null);setCandidate(null);setMessage('');}catch{setError('Não foi possível abrir este treino.');}finally{setBusy(false);}}
   async function save(publish=false){
     if(!selected||busy||conflict)return;const issues=trainingIssues(selected,publish);if(issues.length){setError(issues.join(' '));return;}
     if(publish&&!confirm(`Publicar esta ficha para ${selected.student_name}, matrícula ${selected.registration}? O aluno poderá abrir e iniciar os treinos. Depois de publicada, use uma nova versão para alterar a ficha.`))return;
     setBusy(true);setError('');
     try{const {data,error}=await createClient().rpc('summer_training_save',{p_record:trainingForSave(selected),p_revision:selected.revision,p_publish:publish});if(error){if(error.code==='40001'){setConflict(true);throw new Error('O rascunho mudou em outro acesso. Baixe seu Excel e reabra a lista antes de continuar.');}throw new Error(error.code==='PGRST202'?'A área de treinos precisa ser ativada pela administração no banco.':error.message);}
-      setSelected(data);setDirty(false);setMessage(publish?'Ficha publicada na conta do aluno.':'Rascunho salvo.');if(publish)setPreview(false);
+      setSelected(data);setDirty(false);setMessage(publish?'Ficha publicada na conta do aluno.':'Rascunho salvo.');if(publish)setPrintPlan(null);
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível salvar.');}finally{setBusy(false);}
   }
   async function find(){if(!selected)return;if(!/^\d{4}$/.test(selected.registration)){setError('Informe os quatro números da matrícula.');return;}setBusy(true);setError('');setCandidate(null);try{const {data,error}=await createClient().rpc('summer_assessment_find_student',{p_registration:selected.registration});if(error)throw error;setCandidate(data);if(!data)setError('Aluno não encontrado. É possível salvar o rascunho e vincular após o cadastro.');}catch{setError('Não foi possível consultar o aluno.');}finally{setBusy(false);}}
   async function viewReference(){if(!selected?.source_assessment_id)return;setBusy(true);setError('');try{const {data,error}=await createClient().rpc('summer_assessment_get',{p_id:selected.source_assessment_id});if(error)throw error;setReference(data);}catch{setError('A avaliação de referência está indisponível. Ela pode estar na lixeira.');}finally{setBusy(false);}}
-  async function print(){if(!selected)return;setError('');setBusy(true);try{await printTraining(selected);}catch{setError('Não foi possível abrir a impressão. Permita abrir a janela de impressão e tente novamente.');}finally{setBusy(false);}}
+  function print(){if(!selected)return;setError('');setPrintPlan(selected);}
   const names=[...new Set(items.map(a=>a.instructor))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const visible=items.filter(a=>(!professor||instructorKey(a.instructor)===instructorKey(professor))&&instructorKey(`${a.student_name} ${a.registration} ${trainingLabel(a)}`).includes(instructorKey(search)));
   return <main className={styles.embedded}><div className={styles.heading}><div><p className={styles.eyebrow}>PLANEJAMENTO DO PROFESSOR</p><h1>Treinos dos alunos</h1><p>Monte, guarde e entregue as fichas na conta de cada aluno.</p></div>{!selected&&<button className={styles.primary} disabled={busy} onClick={()=>openNew()}>Novo treino</button>}</div>
@@ -49,7 +49,7 @@ export function TrainingWorkspace({seed,onDirty,onBusy}:{seed:TrainingPlan|null;
       <div className={styles.toolbar}>{page>0&&<button className={styles.secondary} onClick={()=>setPage(page-1)}>Anteriores</button>}{(page+1)*30<visible.length&&<button className={styles.secondary} onClick={()=>setPage(page+1)}>Mais fichas</button>}</div>
     </>:<><div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={back}>← Fichas dos professores</button><ExcelDownload key={selected.id} disabled={busy} onBusyChange={setBusy} createFile={async()=>{const {createTrainingExcelFile}=await import('@/lib/training-excel');return createTrainingExcelFile(selected);}}/><button className={styles.secondary} disabled={busy||!selected.workouts.length} onClick={()=>void print()}>Imprimir ficha · meia A4</button></div>
       {selected.source_assessment_id&&<div className={styles.reference}><strong>Treino vinculado à avaliação do aluno</strong><div className={styles.toolbar}><button className={styles.secondary} disabled={busy} onClick={()=>reference?setReference(null):void viewReference()}>{reference?'Fechar avaliação de referência':'Consultar avaliação de referência'}</button>{selected.status==='draft'&&<button className={styles.secondary} disabled={busy} onClick={()=>{if(confirm('Desvincular a avaliação de referência? O treino continuará ligado ao mesmo aluno.')){change({source_assessment_id:null});setReference(null);}}}>Desvincular avaliação</button>}</div>{reference&&<AssessmentReport assessment={reference}/>}</div>}
-      {selected.status==='published'||preview?<><TrainingReport plan={selected}/><div className={styles.toolbar}>{selected.status==='published'?<button className={styles.primary} disabled={busy} onClick={()=>openNew(copyTraining(selected))}>Criar nova versão</button>:<button className={styles.secondary} onClick={()=>setPreview(false)}>Voltar à edição</button>}</div></>:<fieldset className={styles.trainingForm} disabled={busy||conflict}><legend>Montagem da ficha</legend>
+      {selected.status==='published'?<><TrainingReport plan={selected}/><div className={styles.toolbar}><button className={styles.primary} disabled={busy} onClick={()=>openNew(copyTraining(selected))}>Criar nova versão</button></div></>:<fieldset className={styles.trainingForm} disabled={busy||conflict}><legend>Montagem da ficha</legend>
         <div className={styles.search}><label>Matrícula do aluno<input inputMode="numeric" maxLength={4} value={selected.registration} onChange={e=>{change({registration:e.target.value.replace(/\D/g,''),student_id:null,source_assessment_id:null});setCandidate(null);setReference(null);}}/></label><button className={styles.secondary} type="button" onClick={()=>void find()}>Localizar aluno</button></div>
         {candidate&&<div className={styles.confirm}>{candidate.name} · {candidate.registration}<button className={styles.secondary} onClick={()=>{change({student_id:candidate.id,student_name:candidate.name});setCandidate(null);}}>Confirmar este aluno</button></div>}
         {selected.student_id&&<p className={styles.confirm}>Aluno confirmado: {selected.student_name} · {selected.registration}</p>}
@@ -63,7 +63,8 @@ export function TrainingWorkspace({seed,onDirty,onBusy}:{seed:TrainingPlan|null;
         </section>)}
         <button className={styles.secondary} disabled={selected.workouts.length>=12} onClick={()=>change({workouts:[...selected.workouts,{id:crypto.randomUUID(),title:`Treino ${String.fromCharCode(65+selected.workouts.length)}`,focus:'',minutes:45,exercises:[]}]})}>Adicionar treino A, B, C…</button>
       </fieldset>}
-      {selected.status==='draft'&&<><div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict} onClick={()=>void save()}>Salvar rascunho</button><button className={styles.secondary} disabled={busy} onClick={()=>setPreview(!preview)}>{preview?'Editar ficha':'Visualizar ficha'}</button><button className={styles.primary} disabled={busy||conflict} onClick={()=>void save(true)}>{busy?'Aguarde…':'Publicar para o aluno'}</button></div><p className={styles.note}>Salve o rascunho antes de sair. A prescrição é preenchida e revisada pelo professor.</p></>}
+      {selected.status==='draft'&&<><div className={styles.bottom}><button className={styles.secondary} disabled={busy||conflict} onClick={()=>void save()}>Salvar rascunho</button><button className={styles.secondary} disabled={busy||!selected.workouts.length} onClick={print}>Visualizar ficha</button><button className={styles.primary} disabled={busy||conflict} onClick={()=>void save(true)}>{busy?'Aguarde…':'Publicar para o aluno'}</button></div><p className={styles.note}>Salve o rascunho antes de sair. A prescrição é preenchida e revisada pelo professor.</p></>}
     </>}
+    {printPlan&&<TrainingPrintPreview plan={printPlan} onClose={()=>setPrintPlan(null)}/>}
   </main>;
 }

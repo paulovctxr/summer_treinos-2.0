@@ -2,17 +2,21 @@ import type { TrainingPlan } from './training-plans.ts';
 import { TRAINING_COLUMNS, trainingPaperIdentity, trainingExerciseCells } from './training-paper.ts';
 
 // A4 portrait contains two horizontal A5 cards, matching the academy's paper form.
-export async function printTraining(plan:TrainingPlan){
-  const popup=window.open('','_blank','width=960,height=1000');
-  if(!popup)throw new Error('Impressão bloqueada');
-  popup.opener=null;
-  const doc=popup.document;
+export async function renderTrainingPrint(plan:TrainingPlan,frame:HTMLIFrameElement,signal:AbortSignal){
+  const printWindow=frame.contentWindow;
+  const targetDocument=frame.contentDocument;
+  if(!printWindow||!targetDocument)throw new Error('Prévia indisponível');
+  const doc:Document=targetDocument;
   doc.open();doc.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body></body></html>');doc.close();
   doc.title='Ficha de treino — '+(plan.student_name||'Rascunho');
   // Embed the logo so the printable document also works after the app is closed.
   let logoData='';
-  try{const response=await fetch('/summer-fit-brand.jpeg',{signal:AbortSignal.timeout(5000)});if(response.ok){const blob=await response.blob();logoData=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(blob);});}}catch{/* The academy name remains visible if the logo cannot be loaded. */}
-  if(popup.closed)return;
+  const logoController=new AbortController();
+  const abortLogo=()=>logoController.abort();signal.addEventListener('abort',abortLogo,{once:true});
+  const logoTimeout=window.setTimeout(abortLogo,3000);
+  try{const response=await fetch('/summer-fit-brand.jpeg',{signal:logoController.signal});if(response.ok){const blob=await response.blob();logoData=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(blob);});}}catch{/* The academy name remains visible if the logo cannot be loaded. */}
+  finally{window.clearTimeout(logoTimeout);signal.removeEventListener('abort',abortLogo);}
+  if(signal.aborted)return;
   const style=doc.createElement('style');style.textContent=`
     *{box-sizing:border-box}body{margin:0;background:#eee;color:#111;font-family:Arial,sans-serif}
     .controls{position:sticky;top:0;z-index:2;background:#fff;padding:16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #aaa}
@@ -37,13 +41,13 @@ export async function printTraining(plan:TrainingPlan){
     .exercises td:nth-child(2),.exercises td:nth-child(3),.exercises td:nth-child(4){text-align:center}
     .exercises tr{min-height:5mm}.exercises .notes{text-align:left;font-size:7.5pt}.footer{position:absolute;bottom:3mm;left:7mm;right:7mm;font-size:6.5pt;display:flex;justify-content:space-between}
     @page{size:A4 portrait;margin:0}
-    @media print{body{background:white}.controls{display:none}.sheet{margin:0}.half{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+    @media print{body{background:white}.controls{display:none}.papers{zoom:1!important}.sheet{margin:0}.half{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
   `;doc.head.append(style);
   const controls=doc.createElement('div');controls.className='controls';doc.body.append(controls);
-  const print=doc.createElement('button');print.textContent='Imprimir ficha';print.onclick=()=>{popup.focus();popup.print();};controls.append(print);
+  const print=doc.createElement('button');print.textContent='Imprimir ficha';print.onclick=()=>{printWindow.focus();printWindow.print();};controls.append(print);
   const label=doc.createElement('label');const copies=doc.createElement('input');copies.type='checkbox';copies.checked=true;label.append(copies,doc.createTextNode(' Duas cópias por folha A4'));controls.append(label);
   const hint=doc.createElement('p');hint.className='hint';hint.textContent='Ficha horizontal de meia folha A4. Na impressão, use papel A4, orientação retrato, escala 100% e desative cabeçalhos e rodapés do navegador. Corte na linha pontilhada. Cada treino tem sua ficha; fichas longas continuam nas folhas seguintes.';controls.append(hint);
-  const root=doc.createElement('div');doc.body.append(root);
+  const root=doc.createElement('div');root.className='papers';doc.body.append(root);
   const text=(parent:HTMLElement,tag:string,value:string,className='')=>{const el=doc.createElement(tag);el.textContent=value;el.className=className;parent.append(el);return el;};
   const panels:HTMLElement[]=[];let rows!:HTMLElement;let body!:HTMLTableSectionElement;let currentTitle='';
   function next(){
@@ -80,7 +84,7 @@ export async function printTraining(plan:TrainingPlan){
       let low=1,high=Math.max(...remaining.map(s=>s.length)),best=0;
       while(low<=high){const mid=Math.floor((low+high)/2);const probe=addRow(remaining.map(s=>s.slice(0,mid)),general);
         if(rows.scrollHeight<=rows.clientHeight+1){best=mid;low=mid+1;}else high=mid-1;probe.remove();}
-      if(!best){popup?.close();throw new Error('Não foi possível paginar a ficha.');}
+      if(!best)throw new Error('Não foi possível paginar a ficha.');
       addRow(remaining.map(s=>s.slice(0,best)),general);
       remaining=remaining.map(s=>s.slice(best));if(remaining.some(Boolean))next();
     }
@@ -93,5 +97,9 @@ export async function printTraining(plan:TrainingPlan){
   }
   panels.forEach((panel,i)=>{const footer=doc.createElement('footer');footer.className='footer';text(footer,'span','Siga as orientações do professor · Summer Fit');text(footer,'span',(i+1)+' / '+panels.length);panel.append(footer);});
   const refreshCopies=()=>{root.querySelectorAll('.duplicate').forEach(n=>n.remove());if(copies.checked)for(const panel of panels){const copy=panel.cloneNode(true) as HTMLElement;copy.classList.add('duplicate');panel.parentElement?.append(copy);}};
-  copies.onchange=refreshCopies;refreshCopies();popup.focus();
+  copies.onchange=refreshCopies;refreshCopies();
+  // Fit the paper to the preview on phones; physical print dimensions stay unchanged.
+  const fitPreview=()=>{root.style.zoom=String(Math.min(1,(printWindow.innerWidth-24)/(210*96/25.4)));};
+  fitPreview();printWindow.addEventListener('resize',fitPreview);
+  signal.addEventListener('abort',()=>printWindow.removeEventListener('resize',fitPreview),{once:true});
 }
