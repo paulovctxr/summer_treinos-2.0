@@ -8,5 +8,5 @@ export default async function ProfessorPage() {
   if (!user) return <AssessmentLogin />;
   const [{ data: team }, { data: admin }] = await Promise.all([supabase.rpc('summer_is_assessment_team'),supabase.rpc('summer_is_admin')]);
   if (team !== true && admin !== true) return <AssessmentLogin restricted />;
-  return <TeamWorkspace />;
+  return <TeamWorkspace isAdmin={admin === true} />;
 }
