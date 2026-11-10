@@ -840,7 +840,6 @@ function Dashboard({ user }: { user: User }) {
             </button>
           </div>}
           {activeTab === "Início" && <HomeAssessmentLink />}
-          {(activeTab === "Início" || activeTab === "Treinos") && <StudentTrainingInbox onStart={startWorkout} disabled={busy || !sessionReady || Boolean(active)} />}
           {!online && <p className="notice" role="alert">Você está sem internet. As alterações precisam de conexão para serem salvas.</p>}
           {trialActive && <section className="pro-trial-banner" aria-label="Teste grátis Summer PRO">
             <div><Crown size={18} aria-hidden="true" /><span><strong>Teste grátis PRO ativo</strong><small>{trialDaysLeft > 0 ? `${trialDaysLeft} ${trialDaysLeft === 1 ? "dia restante" : "dias restantes"}` : "Termina hoje"}. O acesso volta automaticamente ao plano grátis no vencimento.</small></span></div>
@@ -1157,6 +1156,7 @@ function Dashboard({ user }: { user: User }) {
                   ADICIONAR TREINO
                 </button>
               </div>
+              <StudentTrainingInbox onStart={startWorkout} disabled={busy || !sessionReady || Boolean(active)} />
               {draft && (
                 <form className="form-card workout-form" ref={editorRef} key={draft.id} onSubmit={saveWorkout} aria-busy={busy}>
                   <fieldset className="workout-fieldset" disabled={busy}>
