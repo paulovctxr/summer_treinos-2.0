@@ -6,7 +6,10 @@ export default async function AssessmentsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/');
-  const { data: team } = await supabase.rpc('summer_is_assessment_team');
-  if (team === true) redirect('/professor');
+  const [{ data: team }, { data: admin }] = await Promise.all([
+    supabase.rpc('summer_is_assessment_team'),
+    supabase.rpc('summer_is_admin'),
+  ]);
+  if (team === true || admin === true) redirect('/professor');
   return <AssessmentWorkspace />;
 }
