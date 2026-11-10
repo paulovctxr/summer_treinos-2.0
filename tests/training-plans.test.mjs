@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
-import {newTraining,copyTraining,trainingForSave,trainingIssues} from '../lib/training-plans.ts';
+import {newTraining,copyTraining,trainingForSave,trainingIssues,importedWorkoutId,workoutsFromTrainingPlan} from '../lib/training-plans.ts';
 import {trainingWorkbook} from '../lib/training-excel.ts';
 test('training links only identification, requires explicit prescription, and copies without shared IDs',()=>{
   const plan=newTraining({id:'assessment',student_id:'student',student_name:'Aluno Teste',registration:'1234',instructor:'Professora Teste',data:{injuries:'Private health detail'}});
@@ -19,4 +19,12 @@ test('training Excel keeps one aligned editable ficha on A4',async()=>{
   assert.equal(sheet.getCell('G6').value,'TREINO:');assert.equal(sheet.getCell('I6').value,'A');assert.equal(sheet.getCell('A7').value,'EXERCÍCIOS');
   assert.equal(sheet.getCell('A8').value,'=1+1');assert.equal(sheet.getCell('D8').value,'');assert.equal(sheet.getCell('I8').value,'Movimento controlado');
   assert.equal(sheet.getCell('A17').value,' ');assert.equal(sheet.getCell('A17').value.formula,undefined);assert.equal(plan.notes,'');assert.equal(sheet.pageSetup.paperSize,9);assert.equal(sheet.pageSetup.orientation,'portrait');assert.equal(sheet.pageSetup.fitToWidth,1);assert.equal(sheet.pageSetup.fitToHeight,1);assert.equal(book.worksheets.length,1);
+});
+test('published training workouts become regular student workouts with stable ids',()=>{
+  const plan={id:'plan-123',workouts:[{id:'workout-a',title:'Treino A',focus:'Força',minutes:45,exercises:[{id:'exercise-a',name:'Supino',sets:3,reps:'10'}]}]};
+  const imported=workoutsFromTrainingPlan(plan);
+  assert.equal(imported[0].id,importedWorkoutId('plan-123','workout-a'));
+  assert.equal(imported[0].title,'Treino A');
+  assert.equal(imported[0].exercises[0].name,'Supino');
+  assert.deepEqual(workoutsFromTrainingPlan(plan),workoutsFromTrainingPlan(plan));
 });

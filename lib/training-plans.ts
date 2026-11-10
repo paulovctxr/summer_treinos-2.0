@@ -3,6 +3,21 @@ import type { Workout } from './fitness.ts';
 export type TrainingPlan={id:string;student_id:string|null;student_name:string;registration:string;instructor:string;title:string;objective:string;target_zone:string;starts_on:string;reviewed_on:string|null;reassess_on:string|null;source_assessment_id:string|null;notes:string;workouts:Workout[];status:'draft'|'published';revision:number;updated_at:string;published_at:string|null};
 export type TrainingSummary=Omit<TrainingPlan,'notes'|'workouts'>;
 export function trainingLabel(plan:Pick<TrainingPlan,'starts_on'>){return plan.starts_on?`Ficha de ${displayDate(plan.starts_on)}`:'Ficha de treino';}
+function compactId(value:string){return value.replace(/[^a-zA-Z0-9]/g,'').slice(0,12)||'item';}
+/**
+ * Uses a stable id so a published teacher workout can be synchronized more
+ * than once without creating duplicate cards in the student's workout list.
+ */
+export function importedWorkoutId(planId:string, workoutId:string){
+  return `teacher-${compactId(planId)}-${compactId(workoutId)}`;
+}
+export function workoutsFromTrainingPlan(plan:Pick<TrainingPlan,'id'|'workouts'>):Workout[]{
+  return plan.workouts.map((workout)=>({
+    ...workout,
+    id:importedWorkoutId(plan.id,workout.id),
+    exercises:workout.exercises.map((exercise)=>({...exercise})),
+  }));
+}
 // Keep the existing RPC contract while generating its required label automatically.
 export function trainingForSave(plan:TrainingPlan):TrainingPlan{return {...plan,title:trainingLabel(plan),notes:''};}
 export function newTraining(assessment?:Assessment):TrainingPlan {

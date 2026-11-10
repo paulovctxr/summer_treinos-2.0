@@ -495,6 +495,34 @@ function Dashboard({ user }: { user: User }) {
       setBusy(false);
     }
   }
+  const importTeacherWorkouts = useCallback(async (incoming: Workout[]) => {
+    if (!incoming.length || saving.current) return false;
+    const known = new Map(fitness.workouts.map((workout) => [workout.id, workout]));
+    if (incoming.every((workout) => JSON.stringify(known.get(workout.id)) === JSON.stringify(workout)))
+      return false;
+    let changed = false;
+    const saved = await persist((current) => {
+      const incomingById = new Map(incoming.map((workout) => [workout.id, workout]));
+      const existingIds = new Set(current.workouts.map((workout) => workout.id));
+      const additions = incoming.filter((workout) => !existingIds.has(workout.id));
+      const updates = incoming.filter((workout) => {
+        const existing = current.workouts.find((savedWorkout) => savedWorkout.id === workout.id);
+        return Boolean(existing && JSON.stringify(existing) !== JSON.stringify(workout));
+      });
+      if (!additions.length && !updates.length) return current;
+      if (current.workouts.length + additions.length > MAX_WORKOUTS)
+        throw new Error("limit");
+      changed = true;
+      return {
+        ...current,
+        workouts: [
+          ...current.workouts.map((workout) => incomingById.get(workout.id) || workout),
+          ...additions,
+        ],
+      };
+    }, "Treinos enviados pelo professor adicionados à sua lista.");
+    return Boolean(saved && changed);
+  }, [fitness.workouts, persist]);
   function openAddWorkout() {
     if (!dataReady) {
       setNotice("Aguarde o carregamento das fichas e tente atualizar.");
@@ -871,6 +899,7 @@ function Dashboard({ user }: { user: User }) {
               </button>
             </div>
           )}
+          {dataReady && <StudentTrainingInbox onImport={importTeacherWorkouts} />}
           {showHelp && (
             <section className="help-card">
               <div className="section-heading">
@@ -1156,7 +1185,6 @@ function Dashboard({ user }: { user: User }) {
                   ADICIONAR TREINO
                 </button>
               </div>
-              <StudentTrainingInbox onStart={startWorkout} disabled={busy || !sessionReady || Boolean(active)} />
               {draft && (
                 <form className="form-card workout-form" ref={editorRef} key={draft.id} onSubmit={saveWorkout} aria-busy={busy}>
                   <fieldset className="workout-fieldset" disabled={busy}>
