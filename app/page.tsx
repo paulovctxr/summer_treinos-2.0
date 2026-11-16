@@ -82,6 +82,7 @@ const navItems = [
   { label: "Perfil", icon: UserRound },
 ] as const;
 const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const WORKOUT_IMPORT_RESUME_KEY = "summer_workout_import_resume";
 function newWorkout(): Workout {
   return {
     id: crypto.randomUUID(),
@@ -262,6 +263,27 @@ function Dashboard({ user }: { user: User }) {
     updateActiveTab(tab);
     if (window.location.hash !== `#${TAB_PATHS[tab]}`) window.history.pushState(null, "", `#${TAB_PATHS[tab]}`);
     window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+  useEffect(() => {
+    const resumeImport = () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        if (sessionStorage.getItem(WORKOUT_IMPORT_RESUME_KEY) !== "1") return;
+        updateActiveTab("Treinos");
+        if (window.location.hash !== `#${TAB_PATHS.Treinos}`)
+          window.history.replaceState(null, "", `#${TAB_PATHS.Treinos}`);
+        setShowImporter(true);
+      } catch {
+        // Keep navigation usable if this browser blocks session storage.
+      }
+    };
+    document.addEventListener("visibilitychange", resumeImport);
+    window.addEventListener("pageshow", resumeImport);
+    resumeImport();
+    return () => {
+      document.removeEventListener("visibilitychange", resumeImport);
+      window.removeEventListener("pageshow", resumeImport);
+    };
   }, []);
   useEffect(() => {
     const syncTab = () => updateActiveTab(tabFromHash(window.location.hash));
@@ -536,6 +558,7 @@ function Dashboard({ user }: { user: User }) {
     }
     if (!canReplaceDraft()) return;
     setDraft(null);
+    try { sessionStorage.setItem(WORKOUT_IMPORT_RESUME_KEY, "1"); } catch {}
     setShowImporter(true);
     setActiveTab("Treinos");
   }
@@ -550,6 +573,7 @@ function Dashboard({ user }: { user: User }) {
       );
       return;
     }
+    try { sessionStorage.removeItem(WORKOUT_IMPORT_RESUME_KEY); } catch {}
     setShowImporter(false);
     openWorkoutEditor(newWorkout());
   }
@@ -1732,6 +1756,7 @@ function Dashboard({ user }: { user: User }) {
           availableWorkoutSlots={MAX_WORKOUTS - fitness.workouts.length}
           onClose={() => {
             setShowImporter(false);
+            try { sessionStorage.removeItem(WORKOUT_IMPORT_RESUME_KEY); } catch {}
             setActiveTab("Treinos");
           }}
           onManual={createManualWorkout}
