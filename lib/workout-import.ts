@@ -244,15 +244,19 @@ async function imageSource(
   close: () => void;
 }> {
   if ("createImageBitmap" in globalThis) {
-    const bitmap = await createImageBitmap(file, {
-      imageOrientation: "from-image",
-    });
-    return {
-      source: bitmap,
-      width: bitmap.width,
-      height: bitmap.height,
-      close: () => bitmap.close(),
-    };
+    try {
+      const bitmap = await createImageBitmap(file, {
+        imageOrientation: "from-image",
+      });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        close: () => bitmap.close(),
+      };
+    } catch {
+      // Safari can support a camera format through <img> even when bitmap decoding fails.
+    }
   }
   const url = URL.createObjectURL(file);
   const image = new Image();
@@ -267,7 +271,10 @@ async function imageSource(
       source: image,
       width: image.naturalWidth,
       height: image.naturalHeight,
-      close: () => URL.revokeObjectURL(url),
+      close: () => {
+        image.src = "";
+        URL.revokeObjectURL(url);
+      },
     };
   } catch (error) {
     URL.revokeObjectURL(url);
@@ -285,9 +292,14 @@ async function blobBase64(blob: Blob) {
   return btoa(binary);
 }
 
-export async function prepareWorkoutImage(
-  file: File,
-): Promise<PreparedWorkoutImage> {
+export async function prepareWorkoutPhoto(file: File): Promise<File> {
+  // Some mobile pickers omit the MIME type while supplying a valid image filename.
+  if (!file.type && /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
+    const extension = file.name.split(".").pop()!.toLowerCase();
+    file = new File([file], file.name, {
+      type: `image/${extension === "jpg" ? "jpeg" : extension}`,
+    });
+  }
   if (!file.type.startsWith("image/"))
     throw new Error("Selecione apenas arquivos de imagem.");
   if (file.size > MAX_SOURCE_IMAGE_BYTES)
@@ -316,7 +328,12 @@ export async function prepareWorkoutImage(
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, width, height);
       context.drawImage(loaded.source, 0, 0, width, height);
-      return canvasBlob(canvas, quality);
+      try {
+        return await canvasBlob(canvas, quality);
+      } finally {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
     };
     let blob = await render(2200, 0.86);
     if (blob.size > MAX_PREPARED_IMAGE_BYTES) blob = await render(1700, 0.72);
@@ -325,12 +342,18 @@ export async function prepareWorkoutImage(
       throw new Error(
         "Não foi possível reduzir esta foto. Tente fotografar novamente mais perto da ficha.",
       );
-    return {
-      data: await blobBase64(blob),
-      mimeType: "image/jpeg",
-      size: blob.size,
-    };
+    return new File([blob], "ficha.jpg", { type: "image/jpeg" });
   } finally {
     loaded.close();
   }
+}
+
+export async function prepareWorkoutImage(file: File): Promise<PreparedWorkoutImage> {
+  const photo =
+    file.type === "image/jpeg" &&
+    file.name === "ficha.jpg" &&
+    file.size <= MAX_PREPARED_IMAGE_BYTES
+      ? file
+      : await prepareWorkoutPhoto(file);
+  return { data: await blobBase64(photo), mimeType: "image/jpeg", size: photo.size };
 }

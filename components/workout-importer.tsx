@@ -22,9 +22,9 @@ import { createClient } from "@/lib/supabase/client";
 import {
   MAX_IMPORT_EXERCISES,
   MAX_IMPORT_IMAGES,
-  MAX_SOURCE_IMAGE_BYTES,
   normalizeWorkoutImport,
   prepareWorkoutImage,
+  prepareWorkoutPhoto,
   validateWorkoutImport,
   workoutImportToFitness,
   type ImportedExercise,
@@ -36,6 +36,11 @@ import { ExerciseDemonstration } from "@/components/exercise-demonstration";
 import { ExerciseNameInput } from "@/components/exercise-name-input";
 import { ExerciseRepetitionsInput } from "@/components/exercise-repetitions-input";
 import { exerciseMediaReferencesFor, matchExerciseMedia } from "@/lib/exercise-media";
+import {
+  clearWorkoutImportDraft,
+  loadWorkoutImportDraft,
+  saveWorkoutImportDraft,
+} from "@/lib/workout-import-draft";
 import styles from "./workout-importer.module.css";
 
 type Step =
@@ -70,17 +75,21 @@ function ImportExerciseMedia({ exercise }: { exercise: ImportedExercise }) {
 }
 
 export function WorkoutImporter({
+  userId,
+  resume = false,
   availableWorkoutSlots,
   onClose,
   onManual,
   onSave,
 }: {
+  userId: string;
+  resume?: boolean;
   availableWorkoutSlots: number;
   onClose: () => void;
   onManual: () => void;
   onSave: (workouts: Workout[], importId: string) => Promise<boolean>;
 }) {
-  const [step, setStep] = useState<Step>("choice");
+  const [step, setStep] = useState<Step>(resume ? "photos" : "choice");
   const [access, setAccess] = useState<WorkoutImportAccess | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -96,6 +105,69 @@ export function WorkoutImporter({
   const cameraInput = useRef<HTMLInputElement>(null);
   const galleryInput = useRef<HTMLInputElement>(null);
   const urls = useRef(new Set<string>());
+  const [restoring, setRestoring] = useState(true);
+  const [preparingPhotos, setPreparingPhotos] = useState(false);
+  const [storageWarning, setStorageWarning] = useState("");
+  const selecting = useRef(false);
+  const mounted = useRef(true);
+  const initialResume = useRef(resume);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function restore() {
+      try {
+        if (!initialResume.current) {
+          await clearWorkoutImportDraft(userId);
+          return;
+        }
+        const draft = await loadWorkoutImportDraft(userId);
+        if (cancelled || !draft) return;
+        const restorePhoto = (item: { id: string; file: Blob }): Photo => {
+          const file = new File([item.file], "ficha.jpg", { type: item.file.type });
+          const preview = URL.createObjectURL(file);
+          urls.current.add(preview);
+          return { id: item.id, file, preview };
+        };
+        setPhotos(draft.photos.map(restorePhoto));
+        setPendingPhoto(draft.pendingPhoto ? restorePhoto(draft.pendingPhoto) : null);
+        setAnalysis(draft.analysis);
+        setImportId(draft.importId);
+        setStep(draft.step);
+        setMessage("Recuperamos sua digitalização. Continue de onde parou.");
+      } catch {
+        if (!cancelled) setStorageWarning("Este navegador não conseguiu recuperar a digitalização. Escolha a foto novamente.");
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    }
+    void restore();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  useEffect(() => {
+    if (restoring) return;
+    const operation = step === "success"
+      ? clearWorkoutImportDraft(userId)
+      : saveWorkoutImportDraft(userId, {
+          step: step === "analyzing" || step === "limit" ? "photos" : step === "saving" ? "review" : step,
+          photos: photos.map(({ id, file }) => ({ id, file })),
+          pendingPhoto: pendingPhoto ? { id: pendingPhoto.id, file: pendingPhoto.file } : null,
+          analysis, importId, updatedAt: Date.now(),
+        });
+    void operation.catch(() => {
+      if (mounted.current) setStorageWarning("A foto pode ser usada agora, mas este navegador não conseguiu guardar o andamento. Mantenha esta tela aberta até salvar.");
+    });
+  }, [userId, restoring, step, photos, pendingPhoto, analysis, importId]);
+
+  async function leave(manual = false) {
+    if (restoring || selecting.current || step === "analyzing" || step === "saving") return;
+    try {
+      await clearWorkoutImportDraft(userId);
+    } catch {
+      // Closing remains available when storage is blocked.
+    }
+    if (manual) onManual(); else onClose();
+  }
 
   async function loadAccess() {
     setAccessLoading(true);
@@ -118,8 +190,10 @@ export function WorkoutImporter({
     void loadAccess();
   }, []);
   useEffect(() => {
+    mounted.current = true;
     const currentUrls = urls.current;
     return () => {
+      mounted.current = false;
       currentUrls.forEach((url) => URL.revokeObjectURL(url));
       currentUrls.clear();
     };
@@ -127,20 +201,17 @@ export function WorkoutImporter({
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
       if (!event.defaultPrevented && event.key === "Escape" && step !== "analyzing" && step !== "saving")
-        onClose();
+        void leave();
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [onClose, step]);
+  }, [onClose, step, restoring]);
 
-  function photo(file: File) {
-    if (!file.type.startsWith("image/"))
-      throw new Error("Selecione apenas arquivos de imagem.");
-    if (file.size > MAX_SOURCE_IMAGE_BYTES)
-      throw new Error("Cada foto pode ter no máximo 15 MB.");
-    const preview = URL.createObjectURL(file);
+  async function photo(file: File): Promise<Photo> {
+    const prepared = await prepareWorkoutPhoto(file);
+    const preview = URL.createObjectURL(prepared);
     urls.current.add(preview);
-    return { id: crypto.randomUUID(), file, preview };
+    return { id: crypto.randomUUID(), file: prepared, preview };
   }
   function discard(item: Photo) {
     URL.revokeObjectURL(item.preview);
@@ -162,34 +233,45 @@ export function WorkoutImporter({
     }
     setStep("photos");
   }
-  function cameraSelected(files: FileList | null) {
-    if (!files?.[0]) return;
-    if (pendingPhoto) discard(pendingPhoto);
-    try {
-      setPendingPhoto(photo(files[0]));
-      setMessage("");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Foto inválida.");
-    }
+  async function selectPhotos(files: FileList | null, camera: boolean) {
+    const selected = Array.from(files || []);
     if (cameraInput.current) cameraInput.current.value = "";
-  }
-  function gallerySelected(files: FileList | null) {
-    if (!files?.length) return;
-    const room = MAX_IMPORT_IMAGES - photos.length;
-    try {
-      const selected = Array.from(files).slice(0, room).map(photo);
-      setPhotos((current) => [...current, ...selected]);
-      setMessage(
-        files.length > room
-          ? `Foram adicionadas ${room} foto(s). O limite é ${MAX_IMPORT_IMAGES}.`
-          : "",
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Uma das imagens é inválida.",
-      );
-    }
     if (galleryInput.current) galleryInput.current.value = "";
+    if (!selected.length || selecting.current || restoring) return;
+    selecting.current = true;
+    setPreparingPhotos(true);
+    setMessage("");
+    setStep("photos");
+    const room = camera ? 1 : MAX_IMPORT_IMAGES - photos.length;
+    const added: Photo[] = [];
+    const errors: string[] = [];
+    try {
+      // Decode one source at a time; previews use only the resized image.
+      for (const file of selected.slice(0, room)) {
+        try {
+          const item = await photo(file);
+          if (!mounted.current) { discard(item); break; }
+          added.push(item);
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : "Não conseguimos abrir esta foto.");
+        }
+      }
+      if (!mounted.current) {
+        added.forEach(discard);
+        return;
+      }
+      if (camera && added[0]) {
+        if (pendingPhoto) discard(pendingPhoto);
+        setPendingPhoto(added[0]);
+      } else if (added.length) {
+        setPhotos(current => [...current, ...added]);
+      }
+      if (selected.length > room) errors.push(`O limite é de ${MAX_IMPORT_IMAGES} fotos por digitalização.`);
+      setMessage([...new Set(errors)].join(" "));
+    } finally {
+      selecting.current = false;
+      if (mounted.current) setPreparingPhotos(false);
+    }
   }
   function usePendingPhoto() {
     if (!pendingPhoto) return;
@@ -204,8 +286,6 @@ export function WorkoutImporter({
     setMessage("");
   }
   function retake() {
-    if (pendingPhoto) discard(pendingPhoto);
-    setPendingPhoto(null);
     cameraInput.current?.click();
   }
   function removePhoto(item: Photo) {
@@ -367,6 +447,7 @@ export function WorkoutImporter({
     setWorkout(workoutId, { exercises });
   }
   async function save() {
+    if (restoring || preparingPhotos) return;
     if (!analysis || !importId) {
       setMessage("A análise expirou. Tire as fotos novamente.");
       return;
@@ -439,7 +520,8 @@ export function WorkoutImporter({
           {step !== "analyzing" && step !== "saving" && (
             <button
               className="icon-button"
-              onClick={onClose}
+              disabled={preparingPhotos || restoring}
+              onClick={() => void leave()}
               aria-label="Fechar"
             >
               <X size={18} />
@@ -452,7 +534,7 @@ export function WorkoutImporter({
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={(event) => cameraSelected(event.target.files)}
+          onChange={(event) => void selectPhotos(event.target.files, true)}
         />
         <input
           ref={galleryInput}
@@ -460,16 +542,30 @@ export function WorkoutImporter({
           type="file"
           accept="image/*"
           multiple
-          onChange={(event) => gallerySelected(event.target.files)}
+          onChange={(event) => void selectPhotos(event.target.files, false)}
         />
 
+        {restoring && (
+          <p className="import-status" role="status">
+            Recuperando digitalização…
+          </p>
+        )}
+        {preparingPhotos && (
+          <p className="import-status" role="status">
+            <LoaderCircle className="spin" size={17} />
+            Preparando foto…
+          </p>
+        )}
+        {storageWarning && (
+          <p className="import-status" role="status">{storageWarning}</p>
+        )}
         {step === "choice" && (
           <div className="import-body">
             <p className="import-lead">Como deseja adicionar seu treino?</p>
             <div className="add-choice-grid">
               <button
                 className="add-choice photo-choice"
-                disabled={accessLoading}
+                disabled={accessLoading || restoring}
                 onClick={chooseImport}
               >
                 <span>
@@ -489,7 +585,11 @@ export function WorkoutImporter({
                 </div>
                 <Sparkles size={19} />
               </button>
-              <button className="add-choice" onClick={onManual}>
+              <button
+                className="add-choice"
+                disabled={preparingPhotos || restoring}
+                onClick={() => void leave(true)}
+              >
                 <span>
                   <PenLine size={24} />
                 </span>
@@ -519,11 +619,19 @@ export function WorkoutImporter({
                   alt="Prévia da ficha fotografada"
                 />
                 <div className="import-actions">
-                  <button className="primary-button" onClick={usePendingPhoto}>
+                  <button
+                    className="primary-button"
+                    disabled={preparingPhotos}
+                    onClick={usePendingPhoto}
+                  >
                     <Check size={17} />
                     USAR FOTO
                   </button>
-                  <button className="secondary-button" onClick={retake}>
+                  <button
+                    className="secondary-button"
+                    disabled={preparingPhotos}
+                    onClick={retake}
+                  >
                     <RotateCcw size={17} />
                     TIRAR NOVAMENTE
                   </button>
@@ -544,7 +652,7 @@ export function WorkoutImporter({
                 <div className="import-actions">
                   <button
                     className="primary-button"
-                    disabled={photos.length >= MAX_IMPORT_IMAGES}
+                    disabled={preparingPhotos || restoring || photos.length >= MAX_IMPORT_IMAGES}
                     onClick={() => cameraInput.current?.click()}
                   >
                     <Camera size={17} />
@@ -552,7 +660,7 @@ export function WorkoutImporter({
                   </button>
                   <button
                     className="secondary-button"
-                    disabled={photos.length >= MAX_IMPORT_IMAGES}
+                    disabled={preparingPhotos || restoring || photos.length >= MAX_IMPORT_IMAGES}
                     onClick={() => galleryInput.current?.click()}
                   >
                     <ImagePlus size={17} />
@@ -577,6 +685,7 @@ export function WorkoutImporter({
                             Foto {index + 1} de {photos.length}
                             <button
                               className="icon-button"
+                              disabled={preparingPhotos}
                               onClick={() => removePhoto(item)}
                               aria-label={`Excluir foto ${index + 1}`}
                             >
@@ -588,6 +697,7 @@ export function WorkoutImporter({
                     </div>
                     <button
                       className="primary-button full-button"
+                      disabled={preparingPhotos || restoring}
                       onClick={() => void analyze()}
                     >
                       <Sparkles size={18} />
@@ -598,8 +708,9 @@ export function WorkoutImporter({
               </>
             )}
             <p className="privacy-note">
-              A foto será utilizada somente para identificar as informações da
-              sua ficha de treino. Ela não será armazenada após o processamento.
+              O rascunho da foto fica disponível neste navegador por 24 horas
+              para recuperar a digitalização. Ele é removido ao salvar ou
+              fechar esta tela.
             </p>
           </div>
         )}
@@ -642,7 +753,11 @@ export function WorkoutImporter({
                 <Camera size={17} />
                 TIRAR OUTRA FOTO
               </button>
-              <button className="secondary-button" onClick={onManual}>
+              <button
+                className="secondary-button"
+                disabled={preparingPhotos || restoring}
+                onClick={() => void leave(true)}
+              >
                 <PenLine size={17} />
                 CONTINUAR MANUALMENTE
               </button>
@@ -932,7 +1047,11 @@ export function WorkoutImporter({
                 </div>
               ))}
             </div>
-            <button className="primary-button full-button" onClick={onClose}>
+            <button
+              className="primary-button full-button"
+              disabled={preparingPhotos || restoring}
+              onClick={() => void leave()}
+            >
               VER MEUS TREINOS
             </button>
             <button
@@ -962,7 +1081,11 @@ export function WorkoutImporter({
                 Cada digitalização pode reunir várias fotos da mesma ficha.
               </span>
             </div>
-            <button className="primary-button full-button" onClick={onManual}>
+            <button
+              className="primary-button full-button"
+              disabled={preparingPhotos || restoring}
+              onClick={() => void leave(true)}
+            >
               <PenLine size={17} />
               CRIAR TREINO MANUALMENTE
             </button>
