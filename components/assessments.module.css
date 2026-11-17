@@ -155,7 +155,8 @@
 .folderFilters label { display: grid; gap: 8px; font-size: 13px; font-weight: 700; }
 .folderFilters input, .folderFilters select { width: 100%; min-width: 0; min-height: 46px; padding: 12px; border: 1px solid #d4d4cc; border-radius: 10px; background: #fffef9; font: inherit; font-size: 16px; }
 @media(max-width:650px) {
-  .teamTabs button { flex: 1; padding: 12px; }
+  .teamTabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+  .teamTabs button { min-width: 0; padding: 10px 5px; font-size: 12px; }
   .trainingForm, .trainingExercise { padding: 14px 10px; }
   .trainingForm .grid { gap: 14px; }
   .shell { padding: 16px 12px 40px; }
