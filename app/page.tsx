@@ -19,6 +19,11 @@ import { matchesWorkout, moveExercise } from "@/lib/workout-editor";
 import { useActiveWorkout } from "@/lib/use-active-workout";
 import { restTimerStorageKey } from "@/lib/workout-clock-state";
 import { loadWorkoutImportDraft } from "@/lib/workout-import-draft";
+import {
+  clearWorkoutImportResume,
+  hasWorkoutImportResume,
+  markWorkoutImportResume,
+} from "@/lib/workout-import-resume";
 const PlanPanel = dynamic(() => import("@/components/plan-panel").then((module) => module.PlanPanel), { loading: PanelLoading });
 const ProWorkspace = dynamic(() => import("@/components/pro-workspace").then((module) => module.ProWorkspace), { loading: PanelLoading });
 const ProPaywall = dynamic(() => import("@/components/pro-paywall").then((module) => module.ProPaywall));
@@ -83,7 +88,6 @@ const navItems = [
   { label: "Perfil", icon: UserRound },
 ] as const;
 const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const workoutImportResumeKey = (userId: string) => `summer_workout_import_resume:${userId}`;
 function newWorkout(): Workout {
   return {
     id: crypto.randomUUID(),
@@ -270,11 +274,10 @@ function Dashboard({ user }: { user: User }) {
     const resumeImport = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const marked =
-          sessionStorage.getItem(workoutImportResumeKey(user.id)) === "1";
+        const marked = hasWorkoutImportResume(user.id);
         const saved = marked ? true : Boolean(await loadWorkoutImportDraft(user.id));
         if (!saved || disposed) return;
-        sessionStorage.setItem(workoutImportResumeKey(user.id), "1");
+        markWorkoutImportResume(user.id);
         updateActiveTab("Treinos");
         if (window.location.hash !== `#${TAB_PATHS.Treinos}`)
           window.history.replaceState(null, "", `#${TAB_PATHS.Treinos}`);
@@ -287,7 +290,6 @@ function Dashboard({ user }: { user: User }) {
     const resume = () => void resumeImport();
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("pageshow", resume);
-    try { sessionStorage.removeItem("summer_workout_import_resume"); } catch {}
     resume();
     return () => {
       disposed = true;
@@ -570,7 +572,7 @@ function Dashboard({ user }: { user: User }) {
     if (!canReplaceDraft()) return;
     setDraft(null);
     setResumingImport(false);
-    try { sessionStorage.setItem(workoutImportResumeKey(user.id), "1"); } catch {}
+    markWorkoutImportResume(user.id);
     setShowImporter(true);
     setActiveTab("Treinos");
   }
@@ -585,7 +587,7 @@ function Dashboard({ user }: { user: User }) {
       );
       return;
     }
-    try { sessionStorage.removeItem(workoutImportResumeKey(user.id)); } catch {}
+    clearWorkoutImportResume(user.id);
     setShowImporter(false);
     openWorkoutEditor(newWorkout());
   }
@@ -1770,7 +1772,7 @@ function Dashboard({ user }: { user: User }) {
           availableWorkoutSlots={MAX_WORKOUTS - fitness.workouts.length}
           onClose={() => {
             setShowImporter(false);
-            try { sessionStorage.removeItem(workoutImportResumeKey(user.id)); } catch {}
+            clearWorkoutImportResume(user.id);
             setActiveTab("Treinos");
           }}
           onManual={createManualWorkout}

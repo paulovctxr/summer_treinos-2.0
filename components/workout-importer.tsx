@@ -40,7 +40,12 @@ import {
   clearWorkoutImportDraft,
   loadWorkoutImportDraft,
   saveWorkoutImportDraft,
+  type WorkoutImportDraft,
 } from "@/lib/workout-import-draft";
+import {
+  clearWorkoutImportResume,
+  markWorkoutImportResume,
+} from "@/lib/workout-import-resume";
 import styles from "./workout-importer.module.css";
 
 type Step =
@@ -112,6 +117,32 @@ export function WorkoutImporter({
   const mounted = useRef(true);
   const initialResume = useRef(resume);
 
+  function resumableStep(): WorkoutImportDraft["step"] {
+    if (step === "choice" || step === "photos" || step === "review" || step === "low-quality") return step;
+    return step === "saving" ? "review" : "photos";
+  }
+
+  function draftSnapshot(): WorkoutImportDraft {
+    return {
+      step: resumableStep(),
+      photos: photos.map(({ id, file }) => ({ id, file })),
+      pendingPhoto: pendingPhoto ? { id: pendingPhoto.id, file: pendingPhoto.file } : null,
+      analysis,
+      importId,
+      updatedAt: Date.now(),
+    };
+  }
+
+  function preserveBeforePicker(input: HTMLInputElement | null) {
+    if (!input) return;
+    markWorkoutImportResume(userId);
+    void saveWorkoutImportDraft(userId, draftSnapshot()).catch(() => {
+      if (mounted.current) setStorageWarning("Este navegador pode não conseguir recuperar a foto. Mantenha esta tela aberta até salvar.");
+    });
+    // Keep the native picker call in the original user gesture.
+    input.click();
+  }
+
   useEffect(() => {
     let cancelled = false;
     async function restore() {
@@ -148,12 +179,7 @@ export function WorkoutImporter({
     if (restoring) return;
     const operation = step === "success"
       ? clearWorkoutImportDraft(userId)
-      : saveWorkoutImportDraft(userId, {
-          step: step === "analyzing" || step === "limit" ? "photos" : step === "saving" ? "review" : step,
-          photos: photos.map(({ id, file }) => ({ id, file })),
-          pendingPhoto: pendingPhoto ? { id: pendingPhoto.id, file: pendingPhoto.file } : null,
-          analysis, importId, updatedAt: Date.now(),
-        });
+      : saveWorkoutImportDraft(userId, draftSnapshot());
     void operation.catch(() => {
       if (mounted.current) setStorageWarning("A foto pode ser usada agora, mas este navegador não conseguiu guardar o andamento. Mantenha esta tela aberta até salvar.");
     });
@@ -238,6 +264,7 @@ export function WorkoutImporter({
     if (cameraInput.current) cameraInput.current.value = "";
     if (galleryInput.current) galleryInput.current.value = "";
     if (!selected.length || selecting.current || restoring) return;
+    markWorkoutImportResume(userId);
     selecting.current = true;
     setPreparingPhotos(true);
     setMessage("");
@@ -286,7 +313,7 @@ export function WorkoutImporter({
     setMessage("");
   }
   function retake() {
-    cameraInput.current?.click();
+    preserveBeforePicker(cameraInput.current);
   }
   function removePhoto(item: Photo) {
     discard(item);
@@ -475,11 +502,13 @@ export function WorkoutImporter({
         0,
       ),
     });
+    clearWorkoutImportResume(userId);
     setStep("success");
     void loadAccess();
   }
 
   function startAnotherImport() {
+    markWorkoutImportResume(userId);
     photos.forEach(discard);
     if (pendingPhoto) discard(pendingPhoto);
     setPhotos([]);
@@ -653,7 +682,7 @@ export function WorkoutImporter({
                   <button
                     className="primary-button"
                     disabled={preparingPhotos || restoring || photos.length >= MAX_IMPORT_IMAGES}
-                    onClick={() => cameraInput.current?.click()}
+                    onClick={() => preserveBeforePicker(cameraInput.current)}
                   >
                     <Camera size={17} />
                     FOTOGRAFAR MINHA FICHA
@@ -661,7 +690,7 @@ export function WorkoutImporter({
                   <button
                     className="secondary-button"
                     disabled={preparingPhotos || restoring || photos.length >= MAX_IMPORT_IMAGES}
-                    onClick={() => galleryInput.current?.click()}
+                    onClick={() => preserveBeforePicker(galleryInput.current)}
                   >
                     <ImagePlus size={17} />
                     ESCOLHER DA GALERIA
@@ -747,7 +776,7 @@ export function WorkoutImporter({
                   setPhotos([]);
                   setAnalysis(null);
                   setStep("photos");
-                  cameraInput.current?.click();
+                  preserveBeforePicker(cameraInput.current);
                 }}
               >
                 <Camera size={17} />
